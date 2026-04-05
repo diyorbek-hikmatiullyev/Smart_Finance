@@ -20,22 +20,9 @@
 		5C4512272F7023DC002DC111 /* SmartFinance.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SmartFinance.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		5C45123C2F7023DE002DC111 /* Exceptions for "SmartFinance" folder in "SmartFinance" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 5C4512262F7023DC002DC111 /* SmartFinance */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5C4512292F7023DC002DC111 /* SmartFinance */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				5C45123C2F7023DE002DC111 /* Exceptions for "SmartFinance" folder in "SmartFinance" target */,
-			);
 			path = SmartFinance;
 			sourceTree = "<group>";
 		};
