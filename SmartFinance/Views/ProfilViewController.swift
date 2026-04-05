@@ -13,35 +13,12 @@
 //
 import UIKit
 import FirebaseAuth
-import FirebaseStorage
-import CoreData
-
-// MARK: - StorageManager
-
-class StorageManager {
-    static let shared = StorageManager()
-    private let storage = Storage.storage().reference()
-
-    func uploadProfileImage(image: UIImage, completion: @escaping (Result<String, Error>) -> Void) {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        guard let imageData = image.jpegData(compressionQuality: 0.5) else { return }
-        let profileRef = storage.child("profile_images/\(uid).jpg")
-        profileRef.putData(imageData, metadata: nil) { _, error in
-            if let error = error { completion(.failure(error)); return }
-            profileRef.downloadURL { url, error in
-                if let urlString = url?.absoluteString {
-                    completion(.success(urlString))
-                } else if let error = error {
-                    completion(.failure(error))
-                }
-            }
-        }
-    }
-}
 
 // MARK: - ProfilViewController
 
 class ProfilViewController: UIViewController {
+
+    private let profileViewModel = ProfileViewModel()
 
     // MARK: - Properties
 
@@ -336,11 +313,7 @@ class ProfilViewController: UIViewController {
     // MARK: - Load Transactions
 
     private func loadTransactions() {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        let request: NSFetchRequest<Transaction> = Transaction.fetchRequest()
-        request.predicate       = NSPredicate(format: "userID == %@", uid)
-        request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
-        transactions = (try? CoreDataStack.shared.context.fetch(request)) ?? []
+        transactions = profileViewModel.loadTransactions()
     }
 
     // MARK: - User Info
@@ -387,23 +360,12 @@ class ProfilViewController: UIViewController {
     }
 
     private func performLogout() {
-        clearCurrentUserLocalData()
+        profileViewModel.clearLocalDataForCurrentUser()
         AuthManager.shared.signOut { [weak self] success in
             guard success else { self?.showErrorAlert(); return }
             DispatchQueue.main.async {
                 NotificationCenter.default.post(name: Notification.Name("switchToAuth"), object: nil)
             }
-        }
-    }
-
-    private func clearCurrentUserLocalData() {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        let ctx     = CoreDataStack.shared.context
-        let request: NSFetchRequest<Transaction> = Transaction.fetchRequest()
-        request.predicate = NSPredicate(format: "userID == %@", uid)
-        if let data = try? ctx.fetch(request) {
-            data.forEach { ctx.delete($0) }
-            CoreDataStack.shared.saveContext()
         }
     }
 
@@ -440,7 +402,7 @@ extension ProfilViewController: UIImagePickerControllerDelegate, UINavigationCon
                                didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
         if let image = info[.editedImage] as? UIImage {
             profileImageView.image = image
-            StorageManager.shared.uploadProfileImage(image: image) { result in
+            ProfileImageStorage.uploadProfileImage(image: image) { result in
                 switch result {
                 case .success(let url):   print("✅ Profil rasm URL: \(url)")
                 case .failure(let error): print("❌ Rasm yuklash xatosi: \(error.localizedDescription)")

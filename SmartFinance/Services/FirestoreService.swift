@@ -4,7 +4,6 @@
 
 import Foundation
 import FirebaseFirestore
-import FirebaseAuth
 
 // MARK: - Validation
 
@@ -88,7 +87,7 @@ final class FirestoreService {
 
     private func writeExpense(_ expense: ScannedExpense,
                               completion: @escaping (Result<Void, Error>) -> Void) {
-        guard let userID = Auth.auth().currentUser?.uid else {
+        guard let userID = AuthSessionProvider.shared.currentUserID else {
             let error = NSError(domain: "Auth", code: 401,
                                 userInfo: [NSLocalizedDescriptionKey: "Foydalanuvchi tizimga kirmagan"])
             completion(.failure(error))

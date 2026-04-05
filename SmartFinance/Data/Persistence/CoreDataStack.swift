@@ -2,19 +2,16 @@
 //  CoreDataStack.swift
 //  SmartFinance
 //
-//  Created by Diyorbek Xikmatullayev on 22/03/26.
-//
 
 import CoreData
-import UIKit
 
-class CoreDataStack {
+final class CoreDataStack {
     static let shared = CoreDataStack()
     private init() {}
 
     lazy var persistentContainer: NSPersistentContainer = {
-        let container = NSPersistentContainer(name: "SmartFinance") // .xcdatamodeld faylingiz nomi
-        container.loadPersistentStores { (_, error) in
+        let container = NSPersistentContainer(name: "SmartFinance")
+        container.loadPersistentStores { _, error in
             if let error = error {
                 fatalError("Core Data yuklanishida xatolik: \(error)")
             }
@@ -23,7 +20,7 @@ class CoreDataStack {
     }()
 
     var context: NSManagedObjectContext {
-        return persistentContainer.viewContext
+        persistentContainer.viewContext
     }
 
     func saveContext() {

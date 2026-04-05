@@ -1,120 +1,20 @@
-
 import UIKit
-import FirebaseAuth
 import DGCharts
-import CoreData
-import FirebaseFirestore
-import NaturalLanguage
-
-// hello
-
-// MARK: - SmartSearchEngine (NaturalLanguage + Sinonimlar + Highlight)
-
-struct SmartSearchEngine {
-
-    // Kategoriya → bog'liq kalit so'zlar
-    static let categoryKeywords: [String: [String]] = [
-        "transport":    ["mashina", "avto", "benzin", "metan", "zapravka", "moy", "jarima",
-                         "taksi", "avtobus", "metro", "poezd", "yo'l", "motor", "kir"],
-        "oziq-ovqat":   ["osh", "non", "tushlik", "kechki", "nonushta", "restoran", "kafe",
-                         "bozor", "supermarket", "mahsulot", "ovqat", "go'sht", "sabzavot"],
-        "kiyim-kechak": ["kiyim", "shim", "ko'ylak", "kurka", "poyabzal",
-                         "do'kon", "magazin", "moda", "belbog", "futbolka"],
-        "salomatlik":   ["dorixona", "dori", "doktor", "shifoxona", "klinika", "muolaja",
-                         "sport", "fitnes", "vitamin", "kasallik", "shifo"],
-        "ijara":        ["ijara", "uy", "kvartira", "xona", "kommunal", "gaz", "suv",
-                         "elektr", "internet", "oylik"],
-        "o'yin-kulgi":  ["kino", "teatr", "konsert", "o'yin", "sayohat", "dam", "bayram",
-                         "futbol", "club", "kafe"],
-    ]
-
-    /// NaturalLanguage lemmatization
-    static func lemmatize(_ word: String) -> String {
-        let tagger = NLTagger(tagSchemes: [.lemma])
-        tagger.string = word
-        var result = word
-        tagger.enumerateTags(in: word.startIndex..<word.endIndex,
-                             unit: .word, scheme: .lemma, options: []) { tag, _ in
-            if let l = tag?.rawValue, !l.isEmpty { result = l.lowercased() }
-            return true
-        }
-        return result
-    }
-
-    /// Qidiruv so'zi uchun tegishli kategoriya va kalit so'zlar
-    static func context(for query: String) -> (category: String?, keywords: Set<String>) {
-        let q = query.lowercased()
-        let lemma = lemmatize(q)
-        for (cat, kws) in categoryKeywords {
-            let hit = cat.contains(q) || q.contains(cat) ||
-                      kws.contains(where: { $0.contains(q) || q.contains($0) || $0.contains(lemma) || lemma.contains($0) })
-            if hit { return (cat, Set(kws)) }
-        }
-        return (nil, [])
-    }
-
-    /// Tranzaksiya mosligini tekshirish
-    static func matches(transaction: Transaction, query: String) -> Bool {
-        let q        = query.lowercased()
-        let title    = transaction.title?.lowercased() ?? ""
-        let category = transaction.category?.lowercased() ?? ""
-
-        if title.contains(q) || category.contains(q) { return true }
-
-        let (relCat, relKWs) = context(for: q)
-        if let rc = relCat, category.contains(rc) { return true }
-        if relKWs.contains(where: { title.contains($0) || category.contains($0) }) { return true }
-        return false
-    }
-
-    /// Matnda qidirilgan so'zni Bold + rangda ajratish
-    static func highlight(text: String, query: String,
-                          font: UIFont,
-                          color: UIColor = UIColor(red: 91/255, green: 173/255, blue: 198/255, alpha: 1)) -> NSAttributedString {
-        let attr  = NSMutableAttributedString(string: text,
-                                              attributes: [.font: font, .foregroundColor: UIColor.label])
-        let lower = text.lowercased()
-        let q     = query.lowercased()
-
-        // Yordamchi: NSRange ni rangli/qalin qilish
-        func apply(nsRange: NSRange, boldFont: UIFont, highlightColor: UIColor) {
-            attr.addAttributes([
-                .foregroundColor: highlightColor,
-                .font: boldFont
-            ], range: nsRange)
-        }
-
-        let boldFont    = UIFont.systemFont(ofSize: font.pointSize, weight: UIFont.Weight.bold)
-        let semiboldFont = UIFont.systemFont(ofSize: font.pointSize, weight: UIFont.Weight.semibold)
-        let dimColor    = color.withAlphaComponent(0.75)
-
-        // To'g'ridan-to'g'ri moslik
-        var searchStart = lower.startIndex
-        while searchStart < lower.endIndex,
-              let found = lower.range(of: q, range: searchStart..<lower.endIndex) {
-            let nsRange = NSRange(found, in: text)
-            apply(nsRange: nsRange, boldFont: boldFont, highlightColor: color)
-            searchStart = found.upperBound
-        }
-
-        // Aqlli kalit so'z moslik
-        let (_, kws) = context(for: q)
-        for kw in kws {
-            var kwStart = lower.startIndex
-            while kwStart < lower.endIndex,
-                  let found = lower.range(of: kw, range: kwStart..<lower.endIndex) {
-                let nsRange = NSRange(found, in: text)
-                apply(nsRange: nsRange, boldFont: semiboldFont, highlightColor: dimColor)
-                kwStart = found.upperBound
-            }
-        }
-        return attr
-    }
-}
 
 // MARK: - DashboardViewController
 
 class DashboardViewController: UIViewController {
+
+    let viewModel = DashboardViewModel()
+
+    /// Jadval manbasi (extensionlar uchun)
+    var groupedTransactions: [GroupedTransactions] {
+        viewModel.groupedTransactions
+    }
+
+    var currentSearchQuery: String {
+        viewModel.currentSearchQuery
+    }
 
     // MARK: - Nav Container
     private let navContainer   = UIView()
@@ -147,13 +47,7 @@ class DashboardViewController: UIViewController {
 
     // MARK: - State
     private var isSearchExpanded = false
-    var currentSearchQuery       = ""
     var isWarningExpanded        = false
-
-    // MARK: - Data
-    var groupedTransactions: [GroupedTransactions] = []
-    var allTransactionsForChart: [Transaction]     = []
-    var firebaseListener: ListenerRegistration?
 
     // MARK: - viewDidLoad
 
@@ -161,6 +55,13 @@ class DashboardViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         navigationController?.isNavigationBarHidden = true
+
+        viewModel.onStateChanged = { [weak self] in
+            DispatchQueue.main.async { self?.applyViewModelState() }
+        }
+        viewModel.onRequireAuth = { [weak self] in
+            DispatchQueue.main.async { self?.navigateToAuth() }
+        }
 
         buildNavBar()
         buildCarousel()
@@ -176,14 +77,43 @@ class DashboardViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: animated)
-        guard Auth.auth().currentUser != nil else { navigateToAuth(); return }
-        fetchTransactions()
-        startFirebaseListener()
+        viewModel.viewWillAppear()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        firebaseListener?.remove(); firebaseListener = nil
+        viewModel.viewWillDisappear()
+    }
+
+    /// Faqat UI: balans, diagramma, jadval (ma'lumot ViewModel / Repository da).
+    private func applyViewModelState() {
+        let filtered = viewModel.transactionsForPeriodCharts
+        let bal = DashboardFinanceCalculator.balanceTextAndColor(filtered: filtered)
+        balanceLabel.text = bal.text
+        balanceLabel.textColor = bal.color
+
+        if let style = DashboardFinanceCalculator.speedWarningStyle(filtered: filtered) {
+            speedWarningLabel.text = style.message
+            warningContainerView.backgroundColor = style.containerBackground
+            speedWarningLabel.textColor = style.labelColor
+        }
+
+        let pie = DashboardFinanceCalculator.buildPieChartData(filteredTransactions: filtered)
+        if let noData = pie.noDataText {
+            pieChartView.data = nil
+            pieChartView.noDataText = noData
+            pieChartView.setNeedsDisplay()
+        } else if let data = pie.data {
+            pieChartView.data = data
+            pieChartView.data?.notifyDataChanged()
+            pieChartView.notifyDataSetChanged()
+            pieChartView.setNeedsLayout()
+            pieChartView.layoutIfNeeded()
+            pieChartView.animate(xAxisDuration: 0.6, yAxisDuration: 0.6, easingOption: .easeInOutQuad)
+        }
+
+        tableView.reloadData()
+        updateTableViewHeight()
     }
 
     private func navigateToAuth() {
@@ -491,7 +421,7 @@ class DashboardViewController: UIViewController {
     @objc func collapseSearch() {
         guard isSearchExpanded else { return }
         isSearchExpanded = false
-        currentSearchQuery = ""
+        viewModel.setSearchQuery("")
 
         searchTextField.resignFirstResponder()
         searchTextField.text = nil
@@ -516,7 +446,7 @@ class DashboardViewController: UIViewController {
         } completion: { _ in
             self.searchTextField.isHidden = true
             self.closeSearchBtn.isHidden  = true
-            self.fetchTransactions()
+            self.viewModel.reloadFromLocal()
         }
     }
 
@@ -536,11 +466,7 @@ class DashboardViewController: UIViewController {
     }
 
     @objc func timeFilterChanged() {
-        calculateBalance()
-        updateChartData()
-        groupedTransactions = group(filterTransactionsBySegment(allTransactionsForChart))
-        tableView.reloadData()
-        DispatchQueue.main.async { self.updateTableViewHeight() }
+        viewModel.setTimeSegmentIndex(timeSegmentControl.selectedSegmentIndex)
     }
 
     func updateTableViewHeight() {
@@ -548,87 +474,6 @@ class DashboardViewController: UIViewController {
         tableViewHeightConstraint?.constant = max(tableView.contentSize.height, 60)
     }
 
-    // MARK: - Yordamchi
-
-    func group(_ transactions: [Transaction]) -> [GroupedTransactions] {
-        var map: [String: [Transaction]] = [:]
-        for t in transactions {
-            let k = t.date?.toString() ?? "Noma'lum"
-            map[k, default: []].append(t)
-        }
-        return map.map { GroupedTransactions(date: $0.key, transactions: $0.value) }
-                  .sorted { $0.date > $1.date }
-    }
-
-    // MARK: - CoreData
-
-    func fetchTransactions() {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            clearDataAndUI(); navigateToAuth(); return
-        }
-        let req: NSFetchRequest<Transaction> = Transaction.fetchRequest()
-        req.predicate       = NSPredicate(format: "userID == %@", uid)
-        req.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
-
-        do {
-            let fetched = try CoreDataStack.shared.context.fetch(req)
-            allTransactionsForChart = fetched
-            groupedTransactions     = group(fetched)
-            DispatchQueue.main.async { [weak self] in
-                self?.calculateBalance()
-                self?.updateChartData()
-                self?.tableView.reloadData()
-                self?.updateTableViewHeight()
-            }
-        } catch { print("❌ Fetch: \(error.localizedDescription)") }
-    }
-
-    func clearDataAndUI() {
-        allTransactionsForChart = []; groupedTransactions = []
-        DispatchQueue.main.async { [weak self] in
-            self?.balanceLabel.text = "0 so'm"
-            self?.pieChartView.data = nil
-            self?.pieChartView.noDataText = "Ma'lumot yo'q"
-            self?.tableView.reloadData()
-            self?.updateTableViewHeight()
-        }
-    }
-
-    // MARK: - Firebase
-
-    func startFirebaseListener() {
-        firebaseListener?.remove()
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        let db = Firestore.firestore()
-        firebaseListener = db.collection("transactions")
-            .whereField("userID", isEqualTo: uid)
-            .order(by: "date", descending: true)
-            .addSnapshotListener { [weak self] snap, err in
-                if let err = err { print("❌ Listener: \(err.localizedDescription)"); return }
-                self?.syncFirebaseToLocalIfNeeded(snapshot: snap)
-            }
-    }
-
-    private func syncFirebaseToLocalIfNeeded(snapshot: QuerySnapshot?) {
-        guard let docs = snapshot?.documents,
-              let uid  = Auth.auth().currentUser?.uid else { return }
-        let ctx = CoreDataStack.shared.context
-        for doc in docs {
-            let data  = doc.data(); let docID = doc.documentID
-            let req: NSFetchRequest<Transaction> = Transaction.fetchRequest()
-            req.predicate = NSPredicate(format: "documentID == %@ AND userID == %@", docID, uid)
-            if let ex = try? ctx.fetch(req), !ex.isEmpty { continue }
-            let t = Transaction(context: ctx)
-            t.documentID = docID; t.userID = uid
-            t.title      = data["title"]    as? String
-            t.amount     = data["amount"]   as? Double ?? 0
-            t.category   = data["category"] as? String
-            t.type       = data["type"]     as? String
-            if let ts = data["date"] as? Timestamp { t.date = ts.dateValue() }
-        }
-        CoreDataStack.shared.saveContext()
-        fetchTransactions()
-    }
 }
 
 // MARK: - UIScrollViewDelegate
@@ -647,19 +492,7 @@ extension DashboardViewController: UIScrollViewDelegate {
 extension DashboardViewController: UITextFieldDelegate {
 
     func textFieldDidChangeSelection(_ textField: UITextField) {
-        currentSearchQuery = (textField.text ?? "").trimmingCharacters(in: .whitespaces)
-
-        guard !currentSearchQuery.isEmpty else {
-            groupedTransactions = group(allTransactionsForChart)
-            tableView.reloadData(); updateTableViewHeight(); return
-        }
-
-        let filtered = allTransactionsForChart.filter {
-            SmartSearchEngine.matches(transaction: $0, query: currentSearchQuery)
-        }
-        groupedTransactions = group(filtered)
-        tableView.reloadData()
-        updateTableViewHeight()
+        viewModel.setSearchQuery(textField.text ?? "")
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {

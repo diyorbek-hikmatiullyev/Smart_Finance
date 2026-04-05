@@ -2,10 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSCameraUsageDescription</key>
-	<string>Chekni skanerlash uchun kamera kerak</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Profil rasmi tanlash uchun galereya kerak</string>
+	<key>GeminiAPIKey</key>
+	<string>AIzaSyBLTHjt5PXi8VhtRQWD_A14O9wSOZzLDUo</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

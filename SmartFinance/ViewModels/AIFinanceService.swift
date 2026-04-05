@@ -1,6 +1,6 @@
 // AIFinanceService.swift
 // SmartFinance
-// Google Gemini API bilan moliyaviy maslahat
+// Google Gemini API — kalit koddan emas, GeminiSecrets.plist yoki Info.plist dan
 
 import Foundation
 
@@ -9,6 +9,7 @@ enum AIServiceError: LocalizedError {
     case invalidResponse
     case apiError(String)
     case noContent
+    case missingAPIKey
 
     var errorDescription: String? {
         switch self {
@@ -16,6 +17,12 @@ enum AIServiceError: LocalizedError {
         case .invalidResponse:    return "Server noto'g'ri javob qaytardi"
         case .apiError(let msg):  return "API xatosi: \(msg)"
         case .noContent:          return "Javob bo'sh keldi"
+        case .missingAPIKey:
+            return """
+            Gemini API kaliti topilmadi. Google AI Studio (https://aistudio.google.com/apikey) dan yangi kalit yarating, \
+            SmartFinance/GeminiSecrets.plist.example faylini nusxalab GeminiSecrets.plist qiling va ichidagi kalitni to'ldiring. \
+            Eski kalit sizib chiqqan bo'lsa, yangi kalit yaratish shart.
+            """
         }
     }
 }
@@ -24,15 +31,35 @@ final class AIFinanceService {
     static let shared = AIFinanceService()
     private init() {}
 
-    // ⚠️ API kalitni bu yerda saqlash faqat diplom ishi uchun.
-    private let apiKey = "AIzaSyCAq8SjAR0Xn-lk9DgMNF5jQfLGkGhayXQ"
-
-    // Gemini 2.0 Flash — tez va tekin
-    private var apiURL: String {
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=\(apiKey)"
+    /// Avvalo `GeminiSecrets.plist` (gitignore), keyin bo'sh bo'lmagan `Info.plist` → `GeminiAPIKey`.
+    private func resolvedAPIKey() -> String? {
+        if let key = loadKeyFromSecretsPlist(), !key.isEmpty {
+            return key
+        }
+        if let key = Bundle.main.object(forInfoDictionaryKey: "GeminiAPIKey") as? String,
+           !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return key.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return nil
     }
 
-    // MARK: - Asosiy so'rov
+    private func loadKeyFromSecretsPlist() -> String? {
+        guard let url = Bundle.main.url(forResource: "GeminiSecrets", withExtension: "plist"),
+              let data = try? Data(contentsOf: url),
+              let obj = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any],
+              let key = obj["GeminiAPIKey"] as? String else {
+            return nil
+        }
+        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty || trimmed == "BU_YERGA_GOOGLE_AI_STUDIO_KALITI" {
+            return nil
+        }
+        return trimmed
+    }
+
+    private func makeAPIURL(key: String) -> String {
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=\(key)"
+    }
 
     func getAdvice(
         summary: FinancialSummary,
@@ -40,10 +67,14 @@ final class AIFinanceService {
         onStream: @escaping (String) -> Void,
         onComplete: @escaping (Result<Void, AIServiceError>) -> Void
     ) {
+        guard let apiKey = resolvedAPIKey() else {
+            DispatchQueue.main.async { onComplete(.failure(.missingAPIKey)) }
+            return
+        }
+
         let systemPrompt = AIPromptBuilder.buildSystemPrompt()
         let userPrompt   = AIPromptBuilder.buildUserPrompt(summary: summary, userQuestion: userQuestion)
 
-        // Gemini format: system + user bitta "contents" massivida
         let fullPrompt = "\(systemPrompt)\n\n\(userPrompt)"
 
         let body: [String: Any] = [
@@ -60,6 +91,8 @@ final class AIFinanceService {
             ]
         ]
 
+        let apiURL = makeAPIURL(key: apiKey)
+
         guard let url = URL(string: apiURL),
               let httpBody = try? JSONSerialization.data(withJSONObject: body) else {
             onComplete(.failure(.invalidResponse))
@@ -74,13 +107,11 @@ final class AIFinanceService {
 
         URLSession.shared.dataTask(with: request) { data, response, error in
 
-            // 1. Network xato
             if let error = error {
                 DispatchQueue.main.async { onComplete(.failure(.networkError(error))) }
                 return
             }
 
-            // 2. HTTP status log
             if let http = response as? HTTPURLResponse {
                 print("📡 HTTP Status: \(http.statusCode)")
             }
@@ -90,18 +121,15 @@ final class AIFinanceService {
                 return
             }
 
-            // 3. Raw log (debug)
             if let raw = String(data: data, encoding: .utf8) {
                 print("📥 Gemini response: \(String(raw.prefix(500)))")
             }
 
-            // 4. JSON parse
             guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 DispatchQueue.main.async { onComplete(.failure(.invalidResponse)) }
                 return
             }
 
-            // 5. Xato tekshirish
             if let errorObj = json["error"] as? [String: Any],
                let message  = errorObj["message"] as? String {
                 print("❌ Gemini Error: \(message)")
@@ -109,8 +137,6 @@ final class AIFinanceService {
                 return
             }
 
-            // 6. Gemini response format:
-            // { "candidates": [ { "content": { "parts": [ { "text": "javob" } ] } } ] }
             if let candidates = json["candidates"] as? [[String: Any]],
                let first      = candidates.first,
                let content    = first["content"] as? [String: Any],

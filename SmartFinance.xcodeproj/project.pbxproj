@@ -211,6 +211,8 @@
 				DEVELOPMENT_TEAM = 22GMHA7X3T;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SmartFinance/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Chekni skanerlash uchun kamera kerak";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Profil rasmi tanlash uchun galereya kerak";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = "";
@@ -239,6 +241,8 @@
 				DEVELOPMENT_TEAM = 22GMHA7X3T;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SmartFinance/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Chekni skanerlash uchun kamera kerak";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Profil rasmi tanlash uchun galereya kerak";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = "";

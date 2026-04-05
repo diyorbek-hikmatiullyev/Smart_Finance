@@ -140,8 +140,6 @@
 
 
 import UIKit
-import CoreData
-import FirebaseFirestore
 
 extension DashboardViewController: UITableViewDelegate, UITableViewDataSource {
 
@@ -229,15 +227,7 @@ extension DashboardViewController: UITableViewDelegate, UITableViewDataSource {
         // O'chirish
         let deleteAction = UIContextualAction(style: .destructive, title: nil) { [weak self] _, _, done in
             guard let self else { done(false); return }
-            let transaction = self.groupedTransactions[indexPath.section].transactions[indexPath.row]
-            if let docID = transaction.documentID {
-                Firestore.firestore().collection("transactions").document(docID).delete { err in
-                    if let err { print("❌ Firebase delete: \(err.localizedDescription)") }
-                }
-            }
-            CoreDataStack.shared.context.delete(transaction)
-            CoreDataStack.shared.saveContext()
-            self.fetchTransactions()
+            self.viewModel.deleteTransaction(at: indexPath)
             done(true)
         }
         deleteAction.image           = UIImage(systemName: "trash.fill")
@@ -266,20 +256,11 @@ extension DashboardViewController: UITableViewDelegate, UITableViewDataSource {
         alert.addTextField { $0.text = "\(Int(transaction.amount))"; $0.placeholder = "Miqdori"; $0.keyboardType = .decimalPad }
 
         let save = UIAlertAction(title: "Saqlash", style: .default) { [weak self] _ in
-            guard let titleText = alert.textFields?[0].text, !titleText.isEmpty,
+            guard let self,
+                  let titleText = alert.textFields?[0].text, !titleText.isEmpty,
                   let amountText = alert.textFields?[1].text,
                   let amount = Double(amountText) else { return }
-
-            if let docID = transaction.documentID {
-                Firestore.firestore().collection("transactions").document(docID)
-                    .updateData(["title": titleText, "amount": amount]) { err in
-                        if let err { print("❌ Firebase update: \(err.localizedDescription)") }
-                    }
-            }
-            transaction.title  = titleText
-            transaction.amount = amount
-            CoreDataStack.shared.saveContext()
-            self?.fetchTransactions()
+            self.viewModel.updateTransaction(at: indexPath, title: titleText, amount: amount)
         }
 
         alert.addAction(save)
