@@ -6,6 +6,8 @@ import CoreData
 import FirebaseFirestore
 import NaturalLanguage
 
+// hello
+
 // MARK: - SmartSearchEngine (NaturalLanguage + Sinonimlar + Highlight)
 
 struct SmartSearchEngine {
