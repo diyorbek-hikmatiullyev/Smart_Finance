@@ -1,134 +1,8 @@
 
-//import UIKit
-//
-//final class AddTransactionViewController: UIViewController {
-//
-//    private let viewModel = AddTransactionViewModel()
-//
-//    let titleField = UITextField()
-//    let amountField = UITextField()
-//    let typeSegment = UISegmentedControl(items: ["Kirim", "Chiqim"])
-//    let categoryButton = UIButton(type: .system)
-//    let saveButton = UIButton(type: .system)
-//
-//    var selectedCategory: String = "Oziq-ovqat"
-//
-//    override func viewDidLoad() {
-//        super.viewDidLoad()
-//        view.backgroundColor = .systemBackground
-//        title = "Yangi Tranzaksiya"
-//        setupUI()
-//        setupCategoryMenu()
-//        updateCategoryVisibility()
-//
-//        let tap = UITapGestureRecognizer(target: self.view, action: #selector(UIView.endEditing))
-//        view.addGestureRecognizer(tap)
-//    }
-//
-//    override func viewWillAppear(_ animated: Bool) {
-//        super.viewWillAppear(animated)
-//        navigationController?.setNavigationBarHidden(false, animated: animated)
-//    }
-//
-//    private func setupUI() {
-//        titleField.borderStyle = .roundedRect
-//        amountField.placeholder = "Miqdori"
-//        amountField.borderStyle = .roundedRect
-//        amountField.keyboardType = .decimalPad
-//
-//        typeSegment.selectedSegmentIndex = 1
-//        typeSegment.addTarget(self, action: #selector(typeChanged), for: .valueChanged)
-//
-//        categoryButton.setTitle("Kategoriya: Oziq-ovqat", for: .normal)
-//        categoryButton.backgroundColor = .secondarySystemBackground
-//        categoryButton.layer.cornerRadius = 8
-//        categoryButton.contentHorizontalAlignment = .leading
-//        categoryButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
-//        categoryButton.heightAnchor.constraint(equalToConstant: 44).isActive = true
-//
-//        saveButton.setTitle("Saqlash", for: .normal)
-//        saveButton.setTitleColor(.white, for: .normal)
-//        saveButton.backgroundColor = .systemBlue
-//        saveButton.layer.cornerRadius = 10
-//        saveButton.titleLabel?.font = .systemFont(ofSize: 18, weight: .semibold)
-//        saveButton.heightAnchor.constraint(equalToConstant: 50).isActive = true
-//        saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
-//
-//        let stackView = UIStackView(arrangedSubviews: [typeSegment, titleField, amountField, categoryButton, saveButton])
-//        stackView.axis = .vertical
-//        stackView.spacing = 15
-//        stackView.translatesAutoresizingMaskIntoConstraints = false
-//        view.addSubview(stackView)
-//
-//        NSLayoutConstraint.activate([
-//            stackView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-//            stackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-//            stackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
-//        ])
-//    }
-//
-//    private func setupCategoryMenu() {
-//        var actions: [UIAction] = []
-//        for category in viewModel.expenseCategories {
-//            let action = UIAction(title: category) { [weak self] action in
-//                self?.selectedCategory = action.title
-//                self?.categoryButton.setTitle("Kategoriya: \(action.title)", for: .normal)
-//                if action.title == "Boshqa..." {
-//                    self?.titleField.placeholder = "Xarajat nomini kiriting..."
-//                    self?.titleField.becomeFirstResponder()
-//                }
-//            }
-//            actions.append(action)
-//        }
-//        categoryButton.menu = UIMenu(title: "Xarajat kategoriyasi", children: actions)
-//        categoryButton.showsMenuAsPrimaryAction = true
-//    }
-//
-//    @objc private func typeChanged() {
-//        updateCategoryVisibility()
-//    }
-//
-//    private func updateCategoryVisibility() {
-//        let isIncome = (typeSegment.selectedSegmentIndex == 0)
-//        categoryButton.isHidden = isIncome
-//        titleField.placeholder = isIncome ? "Kirim manbai (Masalan: Oylik)" : "Nomi (Masalan: Tushlik)"
-//    }
-//
-//    @objc private func saveTapped() {
-//        guard let titleText = titleField.text, !titleText.isEmpty,
-//              let amountText = amountField.text, !amountText.isEmpty else { return }
-//
-//        let cleanedAmount = amountText.replacingOccurrences(of: " ", with: "")
-//            .replacingOccurrences(of: ",", with: ".")
-//        let isIncome = (typeSegment.selectedSegmentIndex == 0)
-//
-//        viewModel.save(
-//            title: titleText,
-//            cleanedAmountText: cleanedAmount,
-//            isIncome: isIncome,
-//            selectedCategory: selectedCategory
-//        ) { error in
-//            if let error = error {
-//                print("☁️ Firebase background sync xatosi: \(error.localizedDescription)")
-//            } else {
-//                print("✅ Bulut bilan muvaffaqiyatli sinxronlandi!")
-//            }
-//        }
-//
-//        navigationController?.popViewController(animated: true)
-//    }
-//}
 
 import UIKit
 
-// MARK: - Currency Model
 
-struct Currency {
-    let code: String
-    let name: String
-    let flag: String
-    let rateToUZS: Double  // 1 unit = X UZS
-}
 
 // MARK: - AddTransactionViewController
 
@@ -139,15 +13,10 @@ final class AddTransactionViewController: UIViewController {
     // MARK: - State
     private var isIncome: Bool = false
     private var selectedCategory: String = "Oziq-ovqat"
-    private var selectedCurrency: Currency = Currency(code: "UZS", name: "O'zbek so'mi", flag: "🇺🇿", rateToUZS: 1)
+    private var selectedCurrency: CurrencyRate = CurrencyService.shared.fallbackRates()[0]
     private var isCurrencyDropdownOpen = false
 
-    private let currencies: [Currency] = [
-        Currency(code: "UZS", name: "O'zbek so'mi",   flag: "🇺🇿", rateToUZS: 1),
-        Currency(code: "USD", name: "AQSh dollari",    flag: "🇺🇸", rateToUZS: 12850),
-        Currency(code: "EUR", name: "Yevro",           flag: "🇪🇺", rateToUZS: 13920),
-        Currency(code: "RUB", name: "Rossiya rubli",   flag: "🇷🇺", rateToUZS: 140),
-    ]
+    private var currencies:  [CurrencyRate] = CurrencyService.shared.fallbackRates()
 
     private let categories: [(name: String, icon: String, systemIcon: String)] = [
         ("Oziq-ovqat", "🍔", "cart.fill"),
@@ -217,6 +86,7 @@ final class AddTransactionViewController: UIViewController {
         view.addGestureRecognizer(tap)
 
         amountTextField.addTarget(self, action: #selector(amountChanged), for: .editingChanged)
+        loadLiveCurrencies()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -344,7 +214,7 @@ final class AddTransactionViewController: UIViewController {
         contentView.addSubview(amountCard)
     }
 
-    private func makeCurrencyRow(currency: Currency, index: Int) -> UIButton {
+    func makeCurrencyRow(currency: CurrencyRate, index: Int) -> UIButton {
         let btn = UIButton(type: .system)
         btn.tag = index
         btn.addTarget(self, action: #selector(currencySelected(_:)), for: .touchUpInside)
@@ -822,4 +692,71 @@ extension UILabel {
 
 private enum AssocKeys {
     static var sectionLabel = "sectionLabel"
+}
+
+
+
+
+// MARK: - AddTransactionViewController extension
+
+extension AddTransactionViewController {
+
+    /// App ishga tushganda yoki VC ochilganda real kurslarni yuklaydi
+    func loadLiveCurrencies() {
+        // Avval fallback kurslar bilan UI ko'rinadi (tezkor)
+        // Keyin real kurslar kelganida yangilanadi
+        CurrencyService.shared.fetchRates { [weak self] liveCurrencies in
+            guard let self = self else { return }
+
+            // Eski tanlangan valyuta kodini saqlab, yangi kursda topamiz
+            let previousCode = self.selectedCurrency.code
+            self.currencies = liveCurrencies
+
+            // Avval tanlangan valyutani yangi ro'yxatda topamiz
+            if let updated = liveCurrencies.first(where: { $0.code == previousCode }) {
+                self.selectedCurrency = updated
+            } else {
+                self.selectedCurrency = liveCurrencies.first ?? CurrencyService.shared.fallbackRates()[0]
+            }
+
+            // Dropdown ni qayta qurish
+            self.rebuildCurrencyDropdown()
+
+            // Konvertatsiya labelini yangilash
+            self.amountChanged()
+
+            // Tugma matnini yangilash
+            self.updateCurrencyButton()
+        }
+    }
+
+    /// Dropdown ni qayta quradi (real kurslar kelganida)
+    func rebuildCurrencyDropdown() {
+        // Eski subview larni tozalash
+        currencyDropdown.subviews.forEach { $0.removeFromSuperview() }
+        dropdownRows.removeAll()
+
+        let dropdownStack = UIStackView()
+        dropdownStack.axis = .vertical
+        dropdownStack.translatesAutoresizingMaskIntoConstraints = false
+
+        for (i, currency) in currencies.enumerated() {
+            let row = makeCurrencyRow(currency: currency, index: i)
+            dropdownStack.addArrangedSubview(row)
+            if i < currencies.count - 1 {
+                let sep = UIView()
+                sep.backgroundColor = UIColor.separator.withAlphaComponent(0.3)
+                sep.heightAnchor.constraint(equalToConstant: 0.5).isActive = true
+                dropdownStack.addArrangedSubview(sep)
+            }
+        }
+
+        currencyDropdown.addSubview(dropdownStack)
+        NSLayoutConstraint.activate([
+            dropdownStack.topAnchor.constraint(equalTo: currencyDropdown.topAnchor),
+            dropdownStack.leadingAnchor.constraint(equalTo: currencyDropdown.leadingAnchor),
+            dropdownStack.trailingAnchor.constraint(equalTo: currencyDropdown.trailingAnchor),
+            dropdownStack.bottomAnchor.constraint(equalTo: currencyDropdown.bottomAnchor),
+        ])
+    }
 }
