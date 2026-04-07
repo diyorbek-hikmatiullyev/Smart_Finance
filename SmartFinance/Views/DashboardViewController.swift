@@ -648,32 +648,32 @@ class DashboardViewController: UIViewController {
     private let closeSearchBtn = UIButton(type: .system)
 
     // MARK: - Carousel
-    private let carouselScrollView  = UIScrollView()
-    private let carouselPageControl = UIPageControl()
+    let carouselScrollView      = UIScrollView()
+     var carouselPageControl = UIPageControl()
     private let chartCard           = UIView()
     let pieChartView                = PieChartView()
     let timeSegmentControl          = UISegmentedControl(items: ["Kun", "Oy", "Yil"])
-    private let goalCard            = UIView()
+    var goalCard            = UIView()
 
-    // MARK: - Chart navigation bar (← sarlavha →)
+    // MARK: - Chart navigation bar
     private let navBarView    = UIView()
     private let prevButton    = UIButton(type: .system)
     private let nextButton    = UIButton(type: .system)
     private let navTitleLabel = UILabel()
     private let todayButton   = UIButton(type: .system)
-    
-    // GOAL
+
+    // MARK: - Goal
     var goalViewModel = GoalViewModel()
     lazy var goalCardView = GoalCardView()
     lazy var smartBanner  = SmartBannerView()
 
     // MARK: - Scroll content
     private var carouselHeightConstraint: NSLayoutConstraint!
-    let scrollView   = UIScrollView()
-    let contentView  = UIView()
-//    let warningContainerView = UIView()
-//    let speedWarningLabel    = UILabel()
-    let tableView = UITableView(frame: .zero, style: .plain)
+    let scrollView              = UIScrollView()
+    let contentView             = UIView()
+    let warningContainerView    = UIView()
+    let speedWarningLabel       = UILabel()
+    let tableView               = UITableView(frame: .zero, style: .plain)
     var tableViewHeightConstraint: NSLayoutConstraint!
 
     // MARK: - State
@@ -727,15 +727,9 @@ class DashboardViewController: UIViewController {
         balanceLabel.text      = bal.text
         balanceLabel.textColor = bal.color
 
-        if let style = DashboardFinanceCalculator.speedWarningStyle(filtered: filtered) {
-            speedWarningLabel.text           = style.message
-            warningContainerView.backgroundColor = style.containerBackground
-            speedWarningLabel.textColor      = style.labelColor
-        }
-
         let pie = DashboardFinanceCalculator.buildPieChartData(filteredTransactions: filtered)
         if let noData = pie.noDataText {
-            pieChartView.data    = nil
+            pieChartView.data       = nil
             pieChartView.noDataText = noData
             pieChartView.setNeedsDisplay()
         } else if let data = pie.data {
@@ -781,24 +775,24 @@ class DashboardViewController: UIViewController {
 
         let pConf = UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold)
         plusBtn.setImage(UIImage(systemName: "plus", withConfiguration: pConf), for: .normal)
-        plusBtn.tintColor       = .white
-        plusBtn.backgroundColor = UIColor(red: 91/255, green: 173/255, blue: 198/255, alpha: 1)
+        plusBtn.tintColor          = .white
+        plusBtn.backgroundColor    = UIColor(red: 91/255, green: 173/255, blue: 198/255, alpha: 1)
         plusBtn.layer.cornerRadius = 16
         plusBtn.translatesAutoresizingMaskIntoConstraints = false
         plusBtn.addTarget(self, action: #selector(addTapped), for: .touchUpInside)
 
-        searchTextField.placeholder       = "Qidirish..."
-        searchTextField.backgroundColor   = .secondarySystemBackground
+        searchTextField.placeholder        = "Qidirish..."
+        searchTextField.backgroundColor    = .secondarySystemBackground
         searchTextField.layer.cornerRadius = 12
-        searchTextField.returnKeyType     = .search
-        searchTextField.alpha             = 0
-        searchTextField.isHidden          = true
+        searchTextField.returnKeyType      = .search
+        searchTextField.alpha              = 0
+        searchTextField.isHidden           = true
         searchTextField.translatesAutoresizingMaskIntoConstraints = false
         let iconBox = UIView(frame: CGRect(x: 0, y: 0, width: 36, height: 36))
         let iconImg = UIImageView(image: UIImage(systemName: "magnifyingglass"))
-        iconImg.tintColor    = .secondaryLabel
-        iconImg.frame        = CGRect(x: 10, y: 8, width: 18, height: 18)
-        iconImg.contentMode  = .scaleAspectFit
+        iconImg.tintColor   = .secondaryLabel
+        iconImg.frame       = CGRect(x: 10, y: 8, width: 18, height: 18)
+        iconImg.contentMode = .scaleAspectFit
         iconBox.addSubview(iconImg)
         searchTextField.leftView     = iconBox
         searchTextField.leftViewMode = .always
@@ -864,18 +858,15 @@ class DashboardViewController: UIViewController {
         chartCard.backgroundColor    = .secondarySystemBackground
         chartCard.layer.cornerRadius = 20
         chartCard.translatesAutoresizingMaskIntoConstraints = false
-        carouselScrollView.addSubview(goalCardView)
-        // va constraint da goalCard → goalCardView
+        carouselScrollView.addSubview(chartCard)
 
-        // Chart nav bar ichki setup
         buildChartNavBar()
 
-        // Pie chart
-        pieChartView.backgroundColor        = .clear
-        pieChartView.noDataText             = "Ma'lumot yo'q"
-        pieChartView.noDataFont             = .systemFont(ofSize: 14)
-        pieChartView.noDataTextColor        = .secondaryLabel
-        pieChartView.holeRadiusPercent      = 0.4
+        pieChartView.backgroundColor         = .clear
+        pieChartView.noDataText              = "Ma'lumot yo'q"
+        pieChartView.noDataFont              = .systemFont(ofSize: 14)
+        pieChartView.noDataTextColor         = .secondaryLabel
+        pieChartView.holeRadiusPercent       = 0.4
         pieChartView.usePercentValuesEnabled = true
         pieChartView.drawEntryLabelsEnabled  = false
         pieChartView.legend.horizontalAlignment = .center
@@ -884,7 +875,6 @@ class DashboardViewController: UIViewController {
         pieChartView.translatesAutoresizingMaskIntoConstraints = false
         chartCard.addSubview(pieChartView)
 
-        // Segment control
         timeSegmentControl.selectedSegmentIndex = 1
         timeSegmentControl.addTarget(self, action: #selector(timeFilterChanged), for: .valueChanged)
         timeSegmentControl.translatesAutoresizingMaskIntoConstraints = false
@@ -895,18 +885,6 @@ class DashboardViewController: UIViewController {
         goalCard.layer.cornerRadius = 20
         goalCard.translatesAutoresizingMaskIntoConstraints = false
         carouselScrollView.addSubview(goalCard)
-
-        let goalLabel = UILabel()
-        goalLabel.text          = "🎯  Maqsadlar yaqinda"
-        goalLabel.font          = .systemFont(ofSize: 16, weight: .medium)
-        goalLabel.textColor     = .tertiaryLabel
-        goalLabel.textAlignment = .center
-        goalLabel.translatesAutoresizingMaskIntoConstraints = false
-        goalCard.addSubview(goalLabel)
-        NSLayoutConstraint.activate([
-            goalLabel.centerXAnchor.constraint(equalTo: goalCard.centerXAnchor),
-            goalLabel.centerYAnchor.constraint(equalTo: goalCard.centerYAnchor),
-        ])
 
         // Page control
         carouselPageControl.numberOfPages = 2
@@ -972,29 +950,24 @@ class DashboardViewController: UIViewController {
         ])
     }
 
-    // MARK: - NavBar UI yangilash
-    // prevButton VA nextButton ikkalasini ham boshqaradi
+    // MARK: - NavBar UI
 
     func updateNavBarUI() {
         navTitleLabel.text = viewModel.navigationTitle
 
-        // ← Oldingi: eng eski tranzaksiya sanasidan oshmasin
         let canPrev = viewModel.canGoToPrevious
-        prevButton.alpha    = canPrev ? 1.0 : 0.25
+        prevButton.alpha     = canPrev ? 1.0 : 0.25
         prevButton.isEnabled = canPrev
 
-        // → Keyingi: kelajakka o'tmasin
         let canNext = viewModel.canGoToNext
-        nextButton.alpha    = canNext ? 1.0 : 0.25
+        nextButton.alpha     = canNext ? 1.0 : 0.25
         nextButton.isEnabled = canNext
 
-        // "Bugun" tugmasi faqat bugun bo'lmagan holda ko'rinadi
         todayButton.isHidden = !canNext
-
         UIView.transition(with: navTitleLabel, duration: 0.18, options: .transitionCrossDissolve) {}
     }
 
-    // MARK: - Navigatsiya actions
+    // MARK: - Navigation actions
 
     @objc private func prevTapped() {
         guard viewModel.canGoToPrevious else { return }
@@ -1016,7 +989,6 @@ class DashboardViewController: UIViewController {
         animateChartTransition(direction: 1)
     }
 
-    /// Chart o'tish animatsiyasi: chapdan/o'ngdan sirpanib keladi
     private func animateChartTransition(direction: CGFloat) {
         let offset: CGFloat = 28 * direction
         UIView.animate(withDuration: 0.13, animations: {
@@ -1119,13 +1091,11 @@ class DashboardViewController: UIViewController {
             chartCard.widthAnchor.constraint(equalToConstant: cw),
             chartCard.heightAnchor.constraint(equalToConstant: cardH),
 
-            // navBar — chartCard ichida eng tepada
             navBarView.topAnchor.constraint(equalTo: chartCard.topAnchor, constant: 10),
             navBarView.leadingAnchor.constraint(equalTo: chartCard.leadingAnchor, constant: 4),
             navBarView.trailingAnchor.constraint(equalTo: chartCard.trailingAnchor, constant: -4),
             navBarView.heightAnchor.constraint(equalToConstant: 36),
 
-            // pieChart — navBar pastidan
             pieChartView.topAnchor.constraint(equalTo: navBarView.bottomAnchor, constant: 4),
             pieChartView.leadingAnchor.constraint(equalTo: chartCard.leadingAnchor, constant: 8),
             pieChartView.trailingAnchor.constraint(equalTo: chartCard.trailingAnchor, constant: -8),
@@ -1162,14 +1132,16 @@ class DashboardViewController: UIViewController {
             self.searchTextField.alpha = 1
             self.closeSearchBtn.alpha  = 1
             self.carouselHeightConstraint.constant = 0
-            self.carouselScrollView.alpha    = 0
-            self.carouselPageControl.alpha   = 0
-            self.warningContainerView.alpha  = 0
+            self.carouselScrollView.alpha   = 0
+            self.carouselPageControl.alpha  = 0
+            self.warningContainerView.alpha = 0
+            self.smartBanner.alpha          = 0
             self.view.layoutIfNeeded()
         } completion: { _ in
-            self.carouselScrollView.isHidden   = true
-            self.carouselPageControl.isHidden  = true
+            self.carouselScrollView.isHidden  = true
+            self.carouselPageControl.isHidden = true
             self.warningContainerView.isHidden = true
+            self.smartBanner.isHidden          = true
             self.searchTextField.becomeFirstResponder()
         }
     }
@@ -1184,6 +1156,7 @@ class DashboardViewController: UIViewController {
         carouselScrollView.isHidden   = false
         carouselPageControl.isHidden  = false
         warningContainerView.isHidden = false
+        smartBanner.isHidden          = false
 
         UIView.animate(withDuration: 0.38, delay: 0,
                        usingSpringWithDamping: 0.82, initialSpringVelocity: 0.2,
@@ -1194,9 +1167,10 @@ class DashboardViewController: UIViewController {
             self.searchTextField.alpha = 0
             self.closeSearchBtn.alpha  = 0
             self.carouselHeightConstraint.constant = 320
-            self.carouselScrollView.alpha    = 1
-            self.carouselPageControl.alpha   = 1
-            self.warningContainerView.alpha  = 1
+            self.carouselScrollView.alpha   = 1
+            self.carouselPageControl.alpha  = 1
+            self.warningContainerView.alpha = 1
+            self.smartBanner.alpha          = 1
             self.view.layoutIfNeeded()
         } completion: { _ in
             self.searchTextField.isHidden = true
@@ -1205,7 +1179,7 @@ class DashboardViewController: UIViewController {
         }
     }
 
-    // MARK: - Other actions
+    // MARK: - Actions
 
     @objc private func toggleWarningBanner() {
         isWarningExpanded.toggle()

@@ -1,6 +1,5 @@
 // SmartBannerView.swift
 // SmartFinance
-// Aqlli ogohlantirish banner — kengayuvchi, tavsiyalar bilan
 
 import UIKit
 
@@ -18,23 +17,19 @@ final class SmartBannerView: UIView {
     weak var delegate: SmartBannerViewDelegate?
 
     // MARK: - UI
-    private let mainRow       = UIView()
-    private let iconLabel     = UILabel()
-    private let mainLabel     = UILabel()
-    private let chevronView   = UIImageView()
+    private let mainRow     = UIView()
+    private let iconLabel   = UILabel()
+    private let mainLabel   = UILabel()
+    private let chevronView = UIImageView()
 
-    private let expandedView  = UIView()
-    private let suggestStack  = UIStackView()
-    private let actionStack   = UIStackView()
-    private let goalButton    = UIButton(type: .system)
-    private let addButton     = UIButton(type: .system)
+    private let expandedView = UIView()
+    private let suggestStack = UIStackView()
+    private let actionStack  = UIStackView()
+    private let goalButton   = UIButton(type: .system)
+    private let addButton    = UIButton(type: .system)
 
     // MARK: - State
     private(set) var isExpanded = false
-    private var expandedHeightConstraint: NSLayoutConstraint?
-    private var collapsedHeightConstraint: NSLayoutConstraint?
-
-    // MARK: - Colors
     private var currentType: SmartBannerType = .safe
 
     // MARK: - Init
@@ -103,28 +98,26 @@ final class SmartBannerView: UIView {
 
     private func setupExpandedView() {
         expandedView.translatesAutoresizingMaskIntoConstraints = false
-        expandedView.alpha = 0
+        expandedView.alpha  = 0
+        expandedView.isHidden = true
         addSubview(expandedView)
 
-        // Separator
         let sep = UIView()
         sep.backgroundColor = UIColor.separator.withAlphaComponent(0.4)
         sep.translatesAutoresizingMaskIntoConstraints = false
         expandedView.addSubview(sep)
 
-        // Suggestions stack
         suggestStack.axis      = .vertical
         suggestStack.spacing   = 8
         suggestStack.translatesAutoresizingMaskIntoConstraints = false
         expandedView.addSubview(suggestStack)
 
-        // Action buttons
         var goalConfig = UIButton.Configuration.filled()
-        goalConfig.title              = "🎯 Maqsad qo'y"
-        goalConfig.cornerStyle        = .large
+        goalConfig.title               = "🎯 Maqsad qo'y"
+        goalConfig.cornerStyle         = .large
         goalConfig.baseBackgroundColor = UIColor(red: 91/255, green: 173/255, blue: 198/255, alpha: 1)
-        goalConfig.buttonSize         = .small
-        goalButton.configuration      = goalConfig
+        goalConfig.buttonSize          = .small
+        goalButton.configuration       = goalConfig
         goalButton.addTarget(self, action: #selector(goalTapped), for: .touchUpInside)
 
         var addConfig = UIButton.Configuration.tinted()
@@ -170,7 +163,6 @@ final class SmartBannerView: UIView {
         currentType = info.type
         updateColors()
 
-        // Icon
         switch info.type {
         case .danger:  iconLabel.text = "🚨"
         case .warning: iconLabel.text = "⚠️"
@@ -179,22 +171,18 @@ final class SmartBannerView: UIView {
 
         mainLabel.text = stripEmoji(from: info.mainMessage)
 
-        // Tavsiyalar
         suggestStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         for suggestion in info.suggestions {
-            let row = makeSuggestionRow(text: suggestion)
-            suggestStack.addArrangedSubview(row)
+            suggestStack.addArrangedSubview(makeSuggestionRow(text: suggestion))
         }
 
-        // Safe bo'lsa expand imkoni yo'q
         chevronView.isHidden = (info.type == .safe && info.suggestions.isEmpty)
     }
 
     private func stripEmoji(from text: String) -> String {
-        // Bosh emojini olib tashlaymiz (uni iconLabel ko'rsatadi)
         let stripped = text.trimmingCharacters(in: .whitespaces)
-        let firstChar = stripped.prefix(2)
-        if firstChar.contains("🚨") || firstChar.contains("⚠️") || firstChar.contains("✅") {
+        let first = stripped.prefix(2)
+        if first.contains("🚨") || first.contains("⚠️") || first.contains("✅") {
             return String(stripped.dropFirst(2)).trimmingCharacters(in: .whitespaces)
         }
         return stripped
@@ -211,7 +199,7 @@ final class SmartBannerView: UIView {
 
         let label = UILabel()
         label.text          = text
-        label.font          = .systemFont(ofSize: 13, weight: .regular)
+        label.font          = .systemFont(ofSize: 13)
         label.textColor     = mainLabel.textColor
         label.numberOfLines = 2
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -234,14 +222,14 @@ final class SmartBannerView: UIView {
     private func updateColors() {
         switch currentType {
         case .danger:
-            backgroundColor          = UIColor.systemRed.withAlphaComponent(0.12)
-            mainLabel.textColor      = .systemRed
+            backgroundColor     = UIColor.systemRed.withAlphaComponent(0.12)
+            mainLabel.textColor = .systemRed
         case .warning:
-            backgroundColor          = UIColor.systemOrange.withAlphaComponent(0.12)
-            mainLabel.textColor      = UIColor(red: 0.8, green: 0.4, blue: 0.0, alpha: 1)
+            backgroundColor     = UIColor.systemOrange.withAlphaComponent(0.12)
+            mainLabel.textColor = UIColor(red: 0.8, green: 0.4, blue: 0.0, alpha: 1)
         case .safe:
-            backgroundColor          = UIColor.systemGreen.withAlphaComponent(0.12)
-            mainLabel.textColor      = .systemGreen
+            backgroundColor     = UIColor.systemGreen.withAlphaComponent(0.12)
+            mainLabel.textColor = .systemGreen
         }
     }
 
@@ -249,20 +237,19 @@ final class SmartBannerView: UIView {
 
     @objc func toggleExpanded() {
         isExpanded.toggle()
+        let imgName = isExpanded ? "chevron.up" : "chevron.down"
+        let chevConf = UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
+        chevronView.image = UIImage(systemName: imgName, withConfiguration: chevConf)
 
-        let chevImg = isExpanded
-            ? UIImage(systemName: "chevron.up", withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold))
-            : UIImage(systemName: "chevron.down", withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold))
+        if isExpanded { expandedView.isHidden = false }
 
         UIView.animate(withDuration: 0.32, delay: 0,
                        usingSpringWithDamping: 0.82, initialSpringVelocity: 0.2) {
-            self.chevronView.image      = chevImg
-            self.expandedView.alpha     = self.isExpanded ? 1 : 0
-            self.expandedView.isHidden  = !self.isExpanded
+            self.expandedView.alpha = self.isExpanded ? 1 : 0
             self.superview?.layoutIfNeeded()
+        } completion: { _ in
+            if !self.isExpanded { self.expandedView.isHidden = true }
         }
-
-        if isExpanded { expandedView.isHidden = false }
     }
 
     func collapse() {
@@ -270,9 +257,8 @@ final class SmartBannerView: UIView {
         isExpanded = false
         expandedView.alpha  = 0
         expandedView.isHidden = true
-        let chevImg = UIImage(systemName: "chevron.down",
-                              withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold))
-        chevronView.image = chevImg
+        let chevConf = UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
+        chevronView.image = UIImage(systemName: "chevron.down", withConfiguration: chevConf)
     }
 
     // MARK: - Actions
@@ -287,4 +273,3 @@ final class SmartBannerView: UIView {
         delegate?.smartBannerDidTapAddTransaction()
     }
 }
-

@@ -8,15 +8,15 @@ import UIKit
 
 extension DashboardViewController: GoalCardViewDelegate {
 
-    func goalCardDidTapAdd(_ card: GoalCardView) {
+    func goalCardDidTapAdd() {
         openGoalSetup(existingGoal: nil)
     }
 
-    func goalCardDidTapEdit(_ card: GoalCardView) {
+    func goalCardDidTapEdit() {
         openGoalSetup(existingGoal: goalViewModel.currentGoal)
     }
 
-    func goalCardDidTapDelete(_ card: GoalCardView) {
+    func goalCardDidTapDelete() {
         let alert = UIAlertController(
             title: "Maqsadni o'chirish",
             message: "Bu oylik maqsadni o'chirishni tasdiqlaysizmi?",
@@ -26,17 +26,13 @@ extension DashboardViewController: GoalCardViewDelegate {
             self?.goalViewModel.deleteGoal { error in
                 DispatchQueue.main.async {
                     if error == nil {
-                        self?.updateGoalsUI()
+                        self?.refreshGoalUI()
                         UINotificationFeedbackGenerator().notificationOccurred(.success)
                     }
                 }
             }
         })
         alert.addAction(UIAlertAction(title: "Bekor qilish", style: .cancel))
-        if let popover = alert.popoverPresentationController {
-            popover.sourceView = card
-            popover.sourceRect = card.bounds
-        }
         present(alert, animated: true)
     }
 }
@@ -54,7 +50,17 @@ extension DashboardViewController: GoalSetupSheetDelegate {
                     self?.present(a, animated: true)
                 } else {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
-                    self?.updateGoalsUI()
+                    self?.refreshGoalUI()
+                }
+            }
+        }
+    }
+
+    func goalSetupDidDelete() {
+        goalViewModel.deleteGoal { [weak self] error in
+            DispatchQueue.main.async {
+                if error == nil {
+                    self?.refreshGoalUI()
                 }
             }
         }
@@ -67,13 +73,14 @@ extension DashboardViewController: GoalSetupSheetDelegate {
 
 extension DashboardViewController: SmartBannerViewDelegate {
 
-    func smartBannerDidTapGoal(_ banner: SmartBannerView) {
+    func smartBannerDidTapAddGoal() {
         let cw = carouselScrollView.bounds.width
         carouselScrollView.setContentOffset(CGPoint(x: cw, y: 0), animated: true)
         carouselPageControl.currentPage = 1
+        openGoalSetup(existingGoal: nil)
     }
 
-    func smartBannerDidTapAddExpense(_ banner: SmartBannerView) {
+    func smartBannerDidTapAddTransaction() {
         let addVC = AddTransactionViewController()
         navigationController?.pushViewController(addVC, animated: true)
     }
@@ -83,10 +90,47 @@ extension DashboardViewController: SmartBannerViewDelegate {
 
 extension DashboardViewController {
 
-    func updateGoalsUI() {
-        goalViewModel.transactions = viewModel.transactionsForPeriodCharts
-        goalCardView.configure(viewModel: goalViewModel)
-        smartBanner.configure(viewModel: goalViewModel)
+    func setupGoalFeatures() {
+        // GoalCardView ni goalCard ichiga joylashtirish
+        goalCardView.translatesAutoresizingMaskIntoConstraints = false
+        goalCardView.delegate = self
+        goalCard.addSubview(goalCardView)
+        NSLayoutConstraint.activate([
+            goalCardView.topAnchor.constraint(equalTo: goalCard.topAnchor),
+            goalCardView.leadingAnchor.constraint(equalTo: goalCard.leadingAnchor),
+            goalCardView.trailingAnchor.constraint(equalTo: goalCard.trailingAnchor),
+            goalCardView.bottomAnchor.constraint(equalTo: goalCard.bottomAnchor),
+        ])
+
+        // SmartBanner ni warningContainerView o'rniga ishlatish
+        smartBanner.delegate = self
+        smartBanner.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(smartBanner)
+        NSLayoutConstraint.activate([
+            smartBanner.topAnchor.constraint(equalTo: warningContainerView.topAnchor),
+            smartBanner.leadingAnchor.constraint(equalTo: warningContainerView.leadingAnchor),
+            smartBanner.trailingAnchor.constraint(equalTo: warningContainerView.trailingAnchor),
+            smartBanner.bottomAnchor.constraint(equalTo: warningContainerView.bottomAnchor),
+        ])
+        warningContainerView.isHidden = true
+
+        // GoalViewModel callback
+        goalViewModel.onStateChanged = { [weak self] in
+            DispatchQueue.main.async { self?.refreshGoalUI() }
+        }
+    }
+
+    func loadGoalData() {
+        goalViewModel.loadGoal(transactions: viewModel.allTransactions)
+    }
+
+    func refreshGoalUI() {
+        let transactions = viewModel.allTransactions
+        goalViewModel.recalculate(transactions: transactions)
+        goalCardView.configure(with: goalViewModel.progress)
+
+        let bannerInfo = goalViewModel.smartBannerInfo(transactions: transactions)
+        smartBanner.configure(with: bannerInfo)
     }
 
     func openGoalSetup(existingGoal: MonthlyGoal?) {
@@ -105,4 +149,3 @@ extension DashboardViewController {
         present(sheet, animated: true)
     }
 }
-
