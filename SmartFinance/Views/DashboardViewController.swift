@@ -1,3 +1,4 @@
+
 //import UIKit
 //import DGCharts
 //
@@ -7,7 +8,6 @@
 //
 //    let viewModel = DashboardViewModel()
 //
-//    /// Jadval manbasi (extensionlar uchun)
 //    var groupedTransactions: [GroupedTransactions] {
 //        viewModel.groupedTransactions
 //    }
@@ -16,7 +16,7 @@
 //        viewModel.currentSearchQuery
 //    }
 //
-//    // MARK: - Nav Container
+//    // MARK: - Top Nav
 //    private let navContainer   = UIView()
 //    var balanceLabel           = UILabel()
 //    private let searchIconBtn  = UIButton(type: .system)
@@ -29,19 +29,22 @@
 //    private let carouselPageControl = UIPageControl()
 //    private let chartCard           = UIView()
 //    let pieChartView                = PieChartView()
-//    let timeSegmentControl          = UISegmentedControl(items: ["Hafta", "Oy", "Yil"])
+//    let timeSegmentControl          = UISegmentedControl(items: ["Kun", "Oy", "Yil"])
 //    private let goalCard            = UIView()
 //
-//    // Carousel collapse constraint
-//    private var carouselHeightConstraint: NSLayoutConstraint!
+//    // MARK: - Chart navigation bar (← sarlavha →)
+//    private let navBarView    = UIView()
+//    private let prevButton    = UIButton(type: .system)
+//    private let nextButton    = UIButton(type: .system)
+//    private let navTitleLabel = UILabel()
+//    private let todayButton   = UIButton(type: .system)
 //
-//    // MARK: - Scroll + Content
+//    // MARK: - Scroll content
+//    private var carouselHeightConstraint: NSLayoutConstraint!
 //    let scrollView   = UIScrollView()
 //    let contentView  = UIView()
-//
 //    let warningContainerView = UIView()
 //    let speedWarningLabel    = UILabel()
-//
 //    let tableView = UITableView(frame: .zero, style: .plain)
 //    var tableViewHeightConstraint: NSLayoutConstraint!
 //
@@ -85,22 +88,24 @@
 //        viewModel.viewWillDisappear()
 //    }
 //
-//    /// Faqat UI: balans, diagramma, jadval (ma'lumot ViewModel / Repository da).
+//    // MARK: - ViewModel state apply
+//
 //    private func applyViewModelState() {
 //        let filtered = viewModel.transactionsForPeriodCharts
+//
 //        let bal = DashboardFinanceCalculator.balanceTextAndColor(filtered: filtered)
-//        balanceLabel.text = bal.text
+//        balanceLabel.text      = bal.text
 //        balanceLabel.textColor = bal.color
 //
 //        if let style = DashboardFinanceCalculator.speedWarningStyle(filtered: filtered) {
-//            speedWarningLabel.text = style.message
+//            speedWarningLabel.text           = style.message
 //            warningContainerView.backgroundColor = style.containerBackground
-//            speedWarningLabel.textColor = style.labelColor
+//            speedWarningLabel.textColor      = style.labelColor
 //        }
 //
 //        let pie = DashboardFinanceCalculator.buildPieChartData(filteredTransactions: filtered)
 //        if let noData = pie.noDataText {
-//            pieChartView.data = nil
+//            pieChartView.data    = nil
 //            pieChartView.noDataText = noData
 //            pieChartView.setNeedsDisplay()
 //        } else if let data = pie.data {
@@ -109,9 +114,10 @@
 //            pieChartView.notifyDataSetChanged()
 //            pieChartView.setNeedsLayout()
 //            pieChartView.layoutIfNeeded()
-//            pieChartView.animate(xAxisDuration: 0.6, yAxisDuration: 0.6, easingOption: .easeInOutQuad)
+//            pieChartView.animate(xAxisDuration: 0.5, yAxisDuration: 0.5, easingOption: .easeInOutQuad)
 //        }
 //
+//        updateNavBarUI()
 //        tableView.reloadData()
 //        updateTableViewHeight()
 //    }
@@ -120,64 +126,57 @@
 //        NotificationCenter.default.post(name: Notification.Name("switchToAuth"), object: nil)
 //    }
 //
-//    // MARK: - Build: Navigation Bar
+//    // MARK: - Build: Top nav bar
 //
 //    private func buildNavBar() {
 //        navContainer.backgroundColor = .systemBackground
 //        navContainer.translatesAutoresizingMaskIntoConstraints = false
 //        view.addSubview(navContainer)
 //
-//        // Separator
 //        let sep = UIView()
 //        sep.backgroundColor = UIColor.separator.withAlphaComponent(0.5)
 //        sep.translatesAutoresizingMaskIntoConstraints = false
 //
-//        // Balance
-//        balanceLabel.font = .systemFont(ofSize: 18, weight: .bold)
+//        balanceLabel.font      = .systemFont(ofSize: 18, weight: .bold)
 //        balanceLabel.textColor = .label
-//        balanceLabel.text = "—"
+//        balanceLabel.text      = "—"
 //        balanceLabel.translatesAutoresizingMaskIntoConstraints = false
 //
-//        // Search Icon
 //        let sConf = UIImage.SymbolConfiguration(pointSize: 17, weight: .medium)
 //        searchIconBtn.setImage(UIImage(systemName: "magnifyingglass", withConfiguration: sConf), for: .normal)
 //        searchIconBtn.tintColor = .label
 //        searchIconBtn.translatesAutoresizingMaskIntoConstraints = false
 //        searchIconBtn.addTarget(self, action: #selector(expandSearch), for: .touchUpInside)
 //
-//        // Plus Button
 //        let pConf = UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold)
 //        plusBtn.setImage(UIImage(systemName: "plus", withConfiguration: pConf), for: .normal)
-//        plusBtn.tintColor = .white
+//        plusBtn.tintColor       = .white
 //        plusBtn.backgroundColor = UIColor(red: 91/255, green: 173/255, blue: 198/255, alpha: 1)
 //        plusBtn.layer.cornerRadius = 16
 //        plusBtn.translatesAutoresizingMaskIntoConstraints = false
 //        plusBtn.addTarget(self, action: #selector(addTapped), for: .touchUpInside)
 //
-//        // SearchTextField (yashirin)
-//        searchTextField.placeholder = "Qidirish..."
-//        searchTextField.backgroundColor = .secondarySystemBackground
+//        searchTextField.placeholder       = "Qidirish..."
+//        searchTextField.backgroundColor   = .secondarySystemBackground
 //        searchTextField.layer.cornerRadius = 12
-//        searchTextField.returnKeyType = .search
-//        searchTextField.alpha   = 0
-//        searchTextField.isHidden = true
+//        searchTextField.returnKeyType     = .search
+//        searchTextField.alpha             = 0
+//        searchTextField.isHidden          = true
 //        searchTextField.translatesAutoresizingMaskIntoConstraints = false
-//
 //        let iconBox = UIView(frame: CGRect(x: 0, y: 0, width: 36, height: 36))
 //        let iconImg = UIImageView(image: UIImage(systemName: "magnifyingglass"))
-//        iconImg.tintColor = .secondaryLabel
-//        iconImg.frame = CGRect(x: 10, y: 8, width: 18, height: 18)
-//        iconImg.contentMode = .scaleAspectFit
+//        iconImg.tintColor    = .secondaryLabel
+//        iconImg.frame        = CGRect(x: 10, y: 8, width: 18, height: 18)
+//        iconImg.contentMode  = .scaleAspectFit
 //        iconBox.addSubview(iconImg)
-//        searchTextField.leftView = iconBox
+//        searchTextField.leftView     = iconBox
 //        searchTextField.leftViewMode = .always
 //
-//        // Close (X) Button
 //        let xConf = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
 //        closeSearchBtn.setImage(UIImage(systemName: "xmark.circle.fill", withConfiguration: xConf), for: .normal)
 //        closeSearchBtn.tintColor = .tertiaryLabel
-//        closeSearchBtn.alpha    = 0
-//        closeSearchBtn.isHidden = true
+//        closeSearchBtn.alpha     = 0
+//        closeSearchBtn.isHidden  = true
 //        closeSearchBtn.translatesAutoresizingMaskIntoConstraints = false
 //        closeSearchBtn.addTarget(self, action: #selector(collapseSearch), for: .touchUpInside)
 //
@@ -230,58 +229,178 @@
 //        carouselScrollView.translatesAutoresizingMaskIntoConstraints = false
 //        view.addSubview(carouselScrollView)
 //
-//        // Card 1 — Chart
-//        chartCard.backgroundColor = .secondarySystemBackground
+//        // Chart card
+//        chartCard.backgroundColor    = .secondarySystemBackground
 //        chartCard.layer.cornerRadius = 20
 //        chartCard.translatesAutoresizingMaskIntoConstraints = false
 //        carouselScrollView.addSubview(chartCard)
 //
-//        pieChartView.backgroundColor = .clear
-//        pieChartView.noDataText = "Ma'lumot yo'q"
-//        pieChartView.noDataFont = .systemFont(ofSize: 14)
-//        pieChartView.noDataTextColor = .secondaryLabel
-//        pieChartView.holeRadiusPercent = 0.4
+//        // Chart nav bar ichki setup
+//        buildChartNavBar()
+//
+//        // Pie chart
+//        pieChartView.backgroundColor        = .clear
+//        pieChartView.noDataText             = "Ma'lumot yo'q"
+//        pieChartView.noDataFont             = .systemFont(ofSize: 14)
+//        pieChartView.noDataTextColor        = .secondaryLabel
+//        pieChartView.holeRadiusPercent      = 0.4
 //        pieChartView.usePercentValuesEnabled = true
-//        pieChartView.drawEntryLabelsEnabled = false
+//        pieChartView.drawEntryLabelsEnabled  = false
 //        pieChartView.legend.horizontalAlignment = .center
-//        pieChartView.legend.verticalAlignment = .bottom
-//        pieChartView.legend.orientation = .horizontal
+//        pieChartView.legend.verticalAlignment   = .bottom
+//        pieChartView.legend.orientation         = .horizontal
 //        pieChartView.translatesAutoresizingMaskIntoConstraints = false
 //        chartCard.addSubview(pieChartView)
 //
+//        // Segment control
 //        timeSegmentControl.selectedSegmentIndex = 1
 //        timeSegmentControl.addTarget(self, action: #selector(timeFilterChanged), for: .valueChanged)
 //        timeSegmentControl.translatesAutoresizingMaskIntoConstraints = false
 //        chartCard.addSubview(timeSegmentControl)
 //
-//        // Card 2 — Goal (bo'sh)
-//        goalCard.backgroundColor = .secondarySystemBackground
+//        // Goal card
+//        goalCard.backgroundColor    = .secondarySystemBackground
 //        goalCard.layer.cornerRadius = 20
 //        goalCard.translatesAutoresizingMaskIntoConstraints = false
 //        carouselScrollView.addSubview(goalCard)
 //
 //        let goalLabel = UILabel()
-//        goalLabel.text = "🎯  Maqsadlar yaqinda"
-//        goalLabel.font = .systemFont(ofSize: 16, weight: .medium)
-//        goalLabel.textColor = .tertiaryLabel
+//        goalLabel.text          = "🎯  Maqsadlar yaqinda"
+//        goalLabel.font          = .systemFont(ofSize: 16, weight: .medium)
+//        goalLabel.textColor     = .tertiaryLabel
 //        goalLabel.textAlignment = .center
 //        goalLabel.translatesAutoresizingMaskIntoConstraints = false
 //        goalCard.addSubview(goalLabel)
-//
 //        NSLayoutConstraint.activate([
 //            goalLabel.centerXAnchor.constraint(equalTo: goalCard.centerXAnchor),
 //            goalLabel.centerYAnchor.constraint(equalTo: goalCard.centerYAnchor),
 //        ])
 //
-//        // Page Control
+//        // Page control
 //        carouselPageControl.numberOfPages = 2
-//        carouselPageControl.pageIndicatorTintColor = .tertiaryLabel
+//        carouselPageControl.pageIndicatorTintColor        = .tertiaryLabel
 //        carouselPageControl.currentPageIndicatorTintColor = UIColor(red: 91/255, green: 173/255, blue: 198/255, alpha: 1)
 //        carouselPageControl.translatesAutoresizingMaskIntoConstraints = false
 //        view.addSubview(carouselPageControl)
 //    }
 //
-//    // MARK: - Build: Scroll Content
+//    // MARK: - Chart nav bar
+//
+//    private func buildChartNavBar() {
+//        let accent = UIColor(red: 91/255, green: 173/255, blue: 198/255, alpha: 1)
+//
+//        navBarView.backgroundColor = .clear
+//        navBarView.translatesAutoresizingMaskIntoConstraints = false
+//        chartCard.addSubview(navBarView)
+//
+//        let chevConf = UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+//
+//        prevButton.setImage(UIImage(systemName: "chevron.left", withConfiguration: chevConf), for: .normal)
+//        prevButton.tintColor = accent
+//        prevButton.translatesAutoresizingMaskIntoConstraints = false
+//        prevButton.addTarget(self, action: #selector(prevTapped), for: .touchUpInside)
+//
+//        nextButton.setImage(UIImage(systemName: "chevron.right", withConfiguration: chevConf), for: .normal)
+//        nextButton.tintColor = accent
+//        nextButton.translatesAutoresizingMaskIntoConstraints = false
+//        nextButton.addTarget(self, action: #selector(nextTapped), for: .touchUpInside)
+//
+//        navTitleLabel.font          = .systemFont(ofSize: 14, weight: .semibold)
+//        navTitleLabel.textColor     = .label
+//        navTitleLabel.textAlignment = .center
+//        navTitleLabel.translatesAutoresizingMaskIntoConstraints = false
+//
+//        todayButton.setTitle("Bugun", for: .normal)
+//        todayButton.titleLabel?.font = .systemFont(ofSize: 12, weight: .medium)
+//        todayButton.tintColor = accent
+//        todayButton.isHidden  = true
+//        todayButton.translatesAutoresizingMaskIntoConstraints = false
+//        todayButton.addTarget(self, action: #selector(todayTapped), for: .touchUpInside)
+//
+//        [prevButton, navTitleLabel, nextButton, todayButton].forEach { navBarView.addSubview($0) }
+//
+//        NSLayoutConstraint.activate([
+//            prevButton.leadingAnchor.constraint(equalTo: navBarView.leadingAnchor, constant: 6),
+//            prevButton.centerYAnchor.constraint(equalTo: navBarView.centerYAnchor),
+//            prevButton.widthAnchor.constraint(equalToConstant: 32),
+//            prevButton.heightAnchor.constraint(equalToConstant: 32),
+//
+//            todayButton.trailingAnchor.constraint(equalTo: navBarView.trailingAnchor, constant: -6),
+//            todayButton.centerYAnchor.constraint(equalTo: navBarView.centerYAnchor),
+//            todayButton.widthAnchor.constraint(equalToConstant: 52),
+//
+//            nextButton.trailingAnchor.constraint(equalTo: todayButton.leadingAnchor, constant: -2),
+//            nextButton.centerYAnchor.constraint(equalTo: navBarView.centerYAnchor),
+//            nextButton.widthAnchor.constraint(equalToConstant: 32),
+//            nextButton.heightAnchor.constraint(equalToConstant: 32),
+//
+//            navTitleLabel.leadingAnchor.constraint(equalTo: prevButton.trailingAnchor, constant: 4),
+//            navTitleLabel.trailingAnchor.constraint(equalTo: nextButton.leadingAnchor, constant: -4),
+//            navTitleLabel.centerYAnchor.constraint(equalTo: navBarView.centerYAnchor),
+//        ])
+//    }
+//
+//    // MARK: - NavBar UI yangilash
+//    // prevButton VA nextButton ikkalasini ham boshqaradi
+//
+//    func updateNavBarUI() {
+//        navTitleLabel.text = viewModel.navigationTitle
+//
+//        // ← Oldingi: eng eski tranzaksiya sanasidan oshmasin
+//        let canPrev = viewModel.canGoToPrevious
+//        prevButton.alpha    = canPrev ? 1.0 : 0.25
+//        prevButton.isEnabled = canPrev
+//
+//        // → Keyingi: kelajakka o'tmasin
+//        let canNext = viewModel.canGoToNext
+//        nextButton.alpha    = canNext ? 1.0 : 0.25
+//        nextButton.isEnabled = canNext
+//
+//        // "Bugun" tugmasi faqat bugun bo'lmagan holda ko'rinadi
+//        todayButton.isHidden = !canNext
+//
+//        UIView.transition(with: navTitleLabel, duration: 0.18, options: .transitionCrossDissolve) {}
+//    }
+//
+//    // MARK: - Navigatsiya actions
+//
+//    @objc private func prevTapped() {
+//        guard viewModel.canGoToPrevious else { return }
+//        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+//        viewModel.goToPrevious()
+//        animateChartTransition(direction: -1)
+//    }
+//
+//    @objc private func nextTapped() {
+//        guard viewModel.canGoToNext else { return }
+//        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+//        viewModel.goToNext()
+//        animateChartTransition(direction: 1)
+//    }
+//
+//    @objc private func todayTapped() {
+//        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+//        viewModel.goToToday()
+//        animateChartTransition(direction: 1)
+//    }
+//
+//    /// Chart o'tish animatsiyasi: chapdan/o'ngdan sirpanib keladi
+//    private func animateChartTransition(direction: CGFloat) {
+//        let offset: CGFloat = 28 * direction
+//        UIView.animate(withDuration: 0.13, animations: {
+//            self.pieChartView.alpha     = 0
+//            self.pieChartView.transform = CGAffineTransform(translationX: -offset, y: 0)
+//        }) { _ in
+//            self.pieChartView.transform = CGAffineTransform(translationX: offset, y: 0)
+//            UIView.animate(withDuration: 0.18, delay: 0,
+//                           usingSpringWithDamping: 0.85, initialSpringVelocity: 0) {
+//                self.pieChartView.alpha     = 1
+//                self.pieChartView.transform = .identity
+//            }
+//        }
+//    }
+//
+//    // MARK: - Build: Scroll content
 //
 //    private func buildScrollContent() {
 //        scrollView.translatesAutoresizingMaskIntoConstraints  = false
@@ -292,7 +411,7 @@
 //        warningContainerView.layer.cornerRadius = 12
 //        warningContainerView.translatesAutoresizingMaskIntoConstraints = false
 //
-//        speedWarningLabel.font = .systemFont(ofSize: 14, weight: .medium)
+//        speedWarningLabel.font          = .systemFont(ofSize: 14, weight: .medium)
 //        speedWarningLabel.numberOfLines = 1
 //        speedWarningLabel.lineBreakMode = .byTruncatingTail
 //        speedWarningLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -313,7 +432,6 @@
 //
 //    private func activateConstraints() {
 //        let cardH: CGFloat = 320
-//
 //        carouselHeightConstraint = carouselScrollView.heightAnchor.constraint(equalToConstant: cardH)
 //
 //        NSLayoutConstraint.activate([
@@ -355,14 +473,12 @@
 //        tableViewHeightConstraint = tableView.heightAnchor.constraint(equalToConstant: 400)
 //        tableViewHeightConstraint.isActive = true
 //
-//        // Carousel card constraints — view layout tayyor bo'lgandan keyin
 //        DispatchQueue.main.async { self.setupCarouselCards(cardH: cardH) }
 //    }
 //
 //    private func setupCarouselCards(cardH: CGFloat) {
 //        let cw = carouselScrollView.bounds.width
 //        guard cw > 0 else { return }
-//
 //        carouselScrollView.contentSize = CGSize(width: cw * 2, height: cardH)
 //
 //        NSLayoutConstraint.activate([
@@ -371,7 +487,14 @@
 //            chartCard.widthAnchor.constraint(equalToConstant: cw),
 //            chartCard.heightAnchor.constraint(equalToConstant: cardH),
 //
-//            pieChartView.topAnchor.constraint(equalTo: chartCard.topAnchor, constant: 12),
+//            // navBar — chartCard ichida eng tepada
+//            navBarView.topAnchor.constraint(equalTo: chartCard.topAnchor, constant: 10),
+//            navBarView.leadingAnchor.constraint(equalTo: chartCard.leadingAnchor, constant: 4),
+//            navBarView.trailingAnchor.constraint(equalTo: chartCard.trailingAnchor, constant: -4),
+//            navBarView.heightAnchor.constraint(equalToConstant: 36),
+//
+//            // pieChart — navBar pastidan
+//            pieChartView.topAnchor.constraint(equalTo: navBarView.bottomAnchor, constant: 4),
 //            pieChartView.leadingAnchor.constraint(equalTo: chartCard.leadingAnchor, constant: 8),
 //            pieChartView.trailingAnchor.constraint(equalTo: chartCard.trailingAnchor, constant: -8),
 //            pieChartView.bottomAnchor.constraint(equalTo: timeSegmentControl.topAnchor, constant: -8),
@@ -386,29 +509,30 @@
 //            goalCard.widthAnchor.constraint(equalToConstant: cw),
 //            goalCard.heightAnchor.constraint(equalToConstant: cardH),
 //        ])
+//
+//        updateNavBarUI()
 //    }
 //
-//    // MARK: - Search Animations
+//    // MARK: - Search
 //
 //    @objc func expandSearch() {
 //        guard !isSearchExpanded else { return }
 //        isSearchExpanded = true
-//
 //        searchTextField.isHidden = false
 //        closeSearchBtn.isHidden  = false
 //
 //        UIView.animate(withDuration: 0.38, delay: 0,
 //                       usingSpringWithDamping: 0.82, initialSpringVelocity: 0.2,
 //                       options: .curveEaseInOut) {
-//            self.balanceLabel.alpha  = 0
-//            self.searchIconBtn.alpha = 0
-//            self.plusBtn.alpha       = 0
+//            self.balanceLabel.alpha    = 0
+//            self.searchIconBtn.alpha   = 0
+//            self.plusBtn.alpha         = 0
 //            self.searchTextField.alpha = 1
 //            self.closeSearchBtn.alpha  = 1
 //            self.carouselHeightConstraint.constant = 0
-//            self.carouselScrollView.alpha           = 0
-//            self.carouselPageControl.alpha          = 0
-//            self.warningContainerView.alpha         = 0
+//            self.carouselScrollView.alpha    = 0
+//            self.carouselPageControl.alpha   = 0
+//            self.warningContainerView.alpha  = 0
 //            self.view.layoutIfNeeded()
 //        } completion: { _ in
 //            self.carouselScrollView.isHidden   = true
@@ -422,7 +546,6 @@
 //        guard isSearchExpanded else { return }
 //        isSearchExpanded = false
 //        viewModel.setSearchQuery("")
-//
 //        searchTextField.resignFirstResponder()
 //        searchTextField.text = nil
 //
@@ -433,15 +556,15 @@
 //        UIView.animate(withDuration: 0.38, delay: 0,
 //                       usingSpringWithDamping: 0.82, initialSpringVelocity: 0.2,
 //                       options: .curveEaseInOut) {
-//            self.balanceLabel.alpha  = 1
-//            self.searchIconBtn.alpha = 1
-//            self.plusBtn.alpha       = 1
+//            self.balanceLabel.alpha    = 1
+//            self.searchIconBtn.alpha   = 1
+//            self.plusBtn.alpha         = 1
 //            self.searchTextField.alpha = 0
 //            self.closeSearchBtn.alpha  = 0
 //            self.carouselHeightConstraint.constant = 320
-//            self.carouselScrollView.alpha           = 1
-//            self.carouselPageControl.alpha          = 1
-//            self.warningContainerView.alpha         = 1
+//            self.carouselScrollView.alpha    = 1
+//            self.carouselPageControl.alpha   = 1
+//            self.warningContainerView.alpha  = 1
 //            self.view.layoutIfNeeded()
 //        } completion: { _ in
 //            self.searchTextField.isHidden = true
@@ -450,7 +573,7 @@
 //        }
 //    }
 //
-//    // MARK: - Actions
+//    // MARK: - Other actions
 //
 //    @objc private func toggleWarningBanner() {
 //        isWarningExpanded.toggle()
@@ -473,7 +596,6 @@
 //        tableView.layoutIfNeeded()
 //        tableViewHeightConstraint?.constant = max(tableView.contentSize.height, 60)
 //    }
-//
 //}
 //
 //// MARK: - UIScrollViewDelegate
@@ -483,18 +605,18 @@
 //        guard scrollView === carouselScrollView else { return }
 //        let w = carouselScrollView.bounds.width
 //        guard w > 0 else { return }
-//        carouselPageControl.currentPage = max(0, min(Int((carouselScrollView.contentOffset.x + w / 2) / w), 1))
+//        carouselPageControl.currentPage = max(0, min(
+//            Int((carouselScrollView.contentOffset.x + w / 2) / w), 1
+//        ))
 //    }
 //}
 //
-//// MARK: - UITextFieldDelegate (Aqlli Qidiruv)
+//// MARK: - UITextFieldDelegate
 //
 //extension DashboardViewController: UITextFieldDelegate {
-//
 //    func textFieldDidChangeSelection(_ textField: UITextField) {
 //        viewModel.setSearchQuery(textField.text ?? "")
 //    }
-//
 //    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
 //        textField.resignFirstResponder(); return true
 //    }
@@ -539,13 +661,18 @@ class DashboardViewController: UIViewController {
     private let nextButton    = UIButton(type: .system)
     private let navTitleLabel = UILabel()
     private let todayButton   = UIButton(type: .system)
+    
+    // GOAL
+    var goalViewModel = GoalViewModel()
+    lazy var goalCardView = GoalCardView()
+    lazy var smartBanner  = SmartBannerView()
 
     // MARK: - Scroll content
     private var carouselHeightConstraint: NSLayoutConstraint!
     let scrollView   = UIScrollView()
     let contentView  = UIView()
-    let warningContainerView = UIView()
-    let speedWarningLabel    = UILabel()
+//    let warningContainerView = UIView()
+//    let speedWarningLabel    = UILabel()
     let tableView = UITableView(frame: .zero, style: .plain)
     var tableViewHeightConstraint: NSLayoutConstraint!
 
@@ -571,6 +698,7 @@ class DashboardViewController: UIViewController {
         buildCarousel()
         buildScrollContent()
         activateConstraints()
+        setupGoalFeatures()
 
         tableView.delegate    = self
         tableView.dataSource  = self
@@ -582,6 +710,7 @@ class DashboardViewController: UIViewController {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: animated)
         viewModel.viewWillAppear()
+        loadGoalData()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -621,6 +750,7 @@ class DashboardViewController: UIViewController {
         updateNavBarUI()
         tableView.reloadData()
         updateTableViewHeight()
+        refreshGoalUI()
     }
 
     private func navigateToAuth() {
@@ -734,7 +864,8 @@ class DashboardViewController: UIViewController {
         chartCard.backgroundColor    = .secondarySystemBackground
         chartCard.layer.cornerRadius = 20
         chartCard.translatesAutoresizingMaskIntoConstraints = false
-        carouselScrollView.addSubview(chartCard)
+        carouselScrollView.addSubview(goalCardView)
+        // va constraint da goalCard → goalCardView
 
         // Chart nav bar ichki setup
         buildChartNavBar()
