@@ -9,36 +9,32 @@ extension DashboardViewController {
     // MARK: - Setup
  
     func setupGoalFeatures() {
-        // goalCard ichiga goalCardView ni joylashtirish
         goalCardView.translatesAutoresizingMaskIntoConstraints = false
         goalCard.addSubview(goalCardView)
- 
+
         NSLayoutConstraint.activate([
             goalCardView.topAnchor.constraint(equalTo: goalCard.topAnchor),
             goalCardView.leadingAnchor.constraint(equalTo: goalCard.leadingAnchor),
             goalCardView.trailingAnchor.constraint(equalTo: goalCard.trailingAnchor),
             goalCardView.bottomAnchor.constraint(equalTo: goalCard.bottomAnchor),
         ])
- 
+
         goalCardView.onCreateTapped = { [weak self] in self?.openBudgetPlanVC(editing: false) }
         goalCardView.onEditTapped   = { [weak self] in self?.openBudgetPlanVC(editing: true) }
- 
+
         goalViewModel.onPlanChanged = { [weak self] in
             DispatchQueue.main.async { self?.refreshGoalUI() }
         }
- 
-        // SmartBanner (ogohlantirishlar chizg'i) — warningContainerView o'rnini bosadi
+
+        // SmartBanner — contentView ga qo'shish, tableView dan oldin
         smartBanner.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(smartBanner)
- 
+
         NSLayoutConstraint.activate([
-            smartBanner.topAnchor.constraint(equalTo: warningContainerView.bottomAnchor, constant: 6),
+            smartBanner.topAnchor.constraint(equalTo: contentView.topAnchor),
             smartBanner.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             smartBanner.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
         ])
- 
-        // tableView top-ni smartBanner ga bog'lash
-        // (aktivatsiya qilingan constraints-lari mavjud bo'lgani uchun bu yerda yangilash shart emas)
     }
  
     // MARK: - Refresh

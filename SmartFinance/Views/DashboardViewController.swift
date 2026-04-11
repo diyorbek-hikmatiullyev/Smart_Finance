@@ -38,6 +38,12 @@ class DashboardViewController: UIViewController {
     private let nextButton    = UIButton(type: .system)
     private let navTitleLabel = UILabel()
     private let todayButton   = UIButton(type: .system)
+    
+    // MARK: - Goal
+    var goalCardView = GoalCardView()
+    var goalViewModel = GoalViewModel()
+    var smartBanner = SmartBannerView()
+    var warningContainerView = UIView()
 
     // MARK: - Scroll content
     private var carouselHeightConstraint: NSLayoutConstraint!
@@ -67,6 +73,10 @@ class DashboardViewController: UIViewController {
         buildCarousel()
         buildScrollContent()
         activateConstraints()
+
+        // Goal — eng oxirida
+        setupGoalFeatures()
+        loadGoalData()
         
         tableView.delegate    = self
         tableView.dataSource  = self
@@ -111,6 +121,7 @@ class DashboardViewController: UIViewController {
         updateNavBarUI()
         tableView.reloadData()
         updateTableViewHeight()
+        refreshGoalUI()
     }
 
     private func navigateToAuth() {
@@ -412,7 +423,7 @@ class DashboardViewController: UIViewController {
             contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
             contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
 
-            tableView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 4),
+            tableView.topAnchor.constraint(equalTo: smartBanner.bottomAnchor, constant: 4),
             tableView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
