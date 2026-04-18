@@ -20,9 +20,22 @@
 		5C4512272F7023DC002DC111 /* SmartFinance.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SmartFinance.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		5C2964362F93FF57003EE9BE /* Exceptions for "SmartFinance" folder in "SmartFinance" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5C4512262F7023DC002DC111 /* SmartFinance */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5C4512292F7023DC002DC111 /* SmartFinance */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5C2964362F93FF57003EE9BE /* Exceptions for "SmartFinance" folder in "SmartFinance" target */,
+			);
 			path = SmartFinance;
 			sourceTree = "<group>";
 		};
@@ -196,7 +209,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 22GMHA7X3T;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SmartFinance/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Chekni skanerlash uchun kamera kerak";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Profil rasmi tanlash uchun galereya kerak";
@@ -226,7 +239,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 22GMHA7X3T;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SmartFinance/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Chekni skanerlash uchun kamera kerak";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Profil rasmi tanlash uchun galereya kerak";
