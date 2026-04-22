@@ -584,54 +584,61 @@
 //}
 
 
+// DashboardViewController.swift
+// SmartFinance
+ 
 import UIKit
 import DGCharts
- 
-// MARK: - DashboardViewController
  
 class DashboardViewController: UIViewController {
  
     let viewModel = DashboardViewModel()
  
-    var groupedTransactions: [GroupedTransactions] {
-        viewModel.groupedTransactions
-    }
+    var groupedTransactions: [GroupedTransactions] { viewModel.groupedTransactions }
+    var currentSearchQuery: String { viewModel.currentSearchQuery }
  
-    var currentSearchQuery: String {
-        viewModel.currentSearchQuery
-    }
+    // MARK: - Accent
+    let accent = UIColor(red: 91/255, green: 173/255, blue: 198/255, alpha: 1)
  
     // MARK: - Top Nav
-    private let navContainer   = UIView()
-    var balanceLabel           = UILabel()
-    private let searchIconBtn  = UIButton(type: .system)
-    private let plusBtn        = UIButton(type: .system)
+    private let navContainer  = UIView()
+    var balanceLabel          = UILabel()
+    var searchIconBtn         = UIButton(type: .system)
+    var plusBtn               = UIButton(type: .system)
  
-    // MARK: - Search + Filter Panel (carousel yonida emas, pastda alohida)
-    private let searchFilterPanel = UIView()
-    let searchTextField           = UITextField()
-    private let closeSearchBtn    = UIButton(type: .system)
+    // MARK: - Search + Filter Panel (DashboardViewController+Search.swift)
+    let searchFilterPanel = UIView()
+    let searchTextField   = UITextField()
+    let closeSearchBtn    = UIButton(type: .system)
  
-    // Filter pill buttons
-    private let filterScrollView  = UIScrollView()
-    private let filterStack       = UIStackView()
-    private let categoryFilterBtn = UIButton(type: .system)
-    private let dateFilterBtn     = UIButton(type: .system)
-    private let clearFilterBtn    = UIButton(type: .system)
+    let filterScrollView  = UIScrollView()
+    let filterStack       = UIStackView()
+    let categoryFilterBtn = UIButton(type: .system)
+    let dateFilterBtn     = UIButton(type: .system)
+    let clearFilterBtn    = UIButton(type: .system)
  
-    // Filter panel height constraint — animatsiya uchun
-    private var filterPanelHeightConstraint: NSLayoutConstraint!
-    private var filterPillsHeightConstraint: NSLayoutConstraint!
+    var filterPanelHeightConstraint: NSLayoutConstraint!
+ 
+    // MARK: - Filter State
+    var isSearchExpanded              = false
+    var selectedCategory: String?     = nil
+    var startDate: Date?              = nil
+    var endDate: Date?                = nil
+ 
+    let allCategories = [
+        "Oziq-ovqat", "Transport", "Ijara",
+        "Kiyim", "O'yin-kulgi", "Salomatlik", "Boshqa"
+    ]
  
     // MARK: - Carousel
-    let carouselScrollView      = UIScrollView()
-    var carouselPageControl     = UIPageControl()
-    private let chartCard       = UIView()
-    let pieChartView            = PieChartView()
-    let timeSegmentControl      = UISegmentedControl(items: ["Kun", "Oy", "Yil"])
-    var goalCard                = UIView()
+    let carouselScrollView  = UIScrollView()
+    var carouselPageControl = UIPageControl()
+    private let chartCard   = UIView()
+    let pieChartView        = PieChartView()
+    let timeSegmentControl  = UISegmentedControl(items: ["Kun", "Oy", "Yil"])
+    var goalCard            = UIView()
  
-    // MARK: - Chart navigation bar
+    // MARK: - Chart Nav Bar
     private let navBarView    = UIView()
     private let prevButton    = UIButton(type: .system)
     private let nextButton    = UIButton(type: .system)
@@ -643,26 +650,12 @@ class DashboardViewController: UIViewController {
     var goalViewModel = GoalViewModel()
     var smartBanner   = SmartBannerView()
  
-    // MARK: - Scroll content
-    private var carouselHeightConstraint: NSLayoutConstraint!
+    // MARK: - Scroll Content
+    var carouselHeightConstraint: NSLayoutConstraint!
     let scrollView  = UIScrollView()
     let contentView = UIView()
     let tableView   = UITableView(frame: .zero, style: .plain)
     var tableViewHeightConstraint: NSLayoutConstraint!
- 
-    // MARK: - State
-    private var isSearchExpanded = false
-    private var selectedCategory: String? = nil
-    private var startDate: Date? = nil
-    private var endDate: Date? = nil
- 
-    // Accent color
-    private let accent = UIColor(red: 91/255, green: 173/255, blue: 198/255, alpha: 1)
- 
-    private let allCategories = [
-        "Oziq-ovqat", "Transport", "Ijara",
-        "Kiyim", "O'yin-kulgi", "Salomatlik", "Boshqa"
-    ]
  
     // MARK: - viewDidLoad
  
@@ -679,7 +672,7 @@ class DashboardViewController: UIViewController {
         }
  
         buildNavBar()
-        buildSearchFilterPanel()
+        buildSearchFilterPanel()   // ← DashboardViewController+Search.swift
         buildCarousel()
         buildScrollContent()
         activateConstraints()
@@ -687,8 +680,8 @@ class DashboardViewController: UIViewController {
         setupGoalFeatures()
         loadGoalData()
  
-        tableView.delegate   = self
-        tableView.dataSource = self
+        tableView.delegate        = self
+        tableView.dataSource      = self
         tableView.isScrollEnabled = false
         searchTextField.delegate  = self
     }
@@ -713,7 +706,7 @@ class DashboardViewController: UIViewController {
         viewModel.viewWillDisappear()
     }
  
-    // MARK: - ViewModel state apply
+    // MARK: - ViewModel State
  
     private func applyViewModelState() {
         let filtered = viewModel.transactionsForPeriodCharts
@@ -746,7 +739,7 @@ class DashboardViewController: UIViewController {
         NotificationCenter.default.post(name: Notification.Name("switchToAuth"), object: nil)
     }
  
-    // MARK: - Build: Top nav bar
+    // MARK: - Build: Top Nav Bar
  
     private func buildNavBar() {
         navContainer.backgroundColor = .systemBackground
@@ -804,150 +797,13 @@ class DashboardViewController: UIViewController {
         ])
     }
  
-    // MARK: - Build: Search + Filter panel
- 
-    private func buildSearchFilterPanel() {
-        searchFilterPanel.backgroundColor = .systemBackground
-        searchFilterPanel.isHidden = true
-        searchFilterPanel.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(searchFilterPanel)
- 
-        // ── Search TextField ──────────────────────────────────────
-        searchTextField.placeholder = "Qidirish..."
-        searchTextField.backgroundColor = .secondarySystemBackground
-        searchTextField.layer.cornerRadius = 12
-        searchTextField.returnKeyType = .search
-        searchTextField.translatesAutoresizingMaskIntoConstraints = false
- 
-        let iconBox = UIView(frame: CGRect(x: 0, y: 0, width: 36, height: 36))
-        let iconImg = UIImageView(image: UIImage(systemName: "magnifyingglass"))
-        iconImg.tintColor = .secondaryLabel
-        iconImg.frame = CGRect(x: 10, y: 8, width: 18, height: 18)
-        iconImg.contentMode = .scaleAspectFit
-        iconBox.addSubview(iconImg)
-        searchTextField.leftView = iconBox
-        searchTextField.leftViewMode = .always
-        searchTextField.addTarget(self, action: #selector(searchTextChanged), for: .editingChanged)
- 
-        let xConf = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
-        closeSearchBtn.setImage(UIImage(systemName: "xmark.circle.fill", withConfiguration: xConf), for: .normal)
-        closeSearchBtn.tintColor = .tertiaryLabel
-        closeSearchBtn.translatesAutoresizingMaskIntoConstraints = false
-        closeSearchBtn.addTarget(self, action: #selector(collapseSearch), for: .touchUpInside)
- 
-        // ── Filter Pills ──────────────────────────────────────────
-        filterScrollView.showsHorizontalScrollIndicator = false
-        filterScrollView.contentInset = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
-        filterScrollView.translatesAutoresizingMaskIntoConstraints = false
- 
-        filterStack.axis = .horizontal
-        filterStack.spacing = 8
-        filterStack.translatesAutoresizingMaskIntoConstraints = false
- 
-        // Category pill
-        styleFilterPill(categoryFilterBtn, title: "Kategoriya", icon: "tag.fill", active: false)
-        categoryFilterBtn.addTarget(self, action: #selector(showCategoryPicker), for: .touchUpInside)
- 
-        // Date pill
-        styleFilterPill(dateFilterBtn, title: "Sana", icon: "calendar", active: false)
-        dateFilterBtn.addTarget(self, action: #selector(showDatePicker), for: .touchUpInside)
- 
-        // Clear pill
-        styleFilterPill(clearFilterBtn, title: "Tozalash", icon: "xmark.circle.fill", active: false)
-        clearFilterBtn.isHidden = true
-        clearFilterBtn.addTarget(self, action: #selector(clearAllFilters), for: .touchUpInside)
- 
-        [categoryFilterBtn, dateFilterBtn, clearFilterBtn].forEach {
-            filterStack.addArrangedSubview($0)
-        }
-        filterScrollView.addSubview(filterStack)
- 
-        // Bottom separator
-        let sep = UIView()
-        sep.backgroundColor = UIColor.separator.withAlphaComponent(0.4)
-        sep.translatesAutoresizingMaskIntoConstraints = false
- 
-        [searchTextField, closeSearchBtn, filterScrollView, sep].forEach {
-            searchFilterPanel.addSubview($0)
-        }
- 
-        filterPillsHeightConstraint = filterScrollView.heightAnchor.constraint(equalToConstant: 36)
- 
-        NSLayoutConstraint.activate([
-            searchTextField.topAnchor.constraint(equalTo: searchFilterPanel.topAnchor, constant: 10),
-            searchTextField.leadingAnchor.constraint(equalTo: searchFilterPanel.leadingAnchor, constant: 16),
-            searchTextField.trailingAnchor.constraint(equalTo: closeSearchBtn.leadingAnchor, constant: -8),
-            searchTextField.heightAnchor.constraint(equalToConstant: 40),
- 
-            closeSearchBtn.centerYAnchor.constraint(equalTo: searchTextField.centerYAnchor),
-            closeSearchBtn.trailingAnchor.constraint(equalTo: searchFilterPanel.trailingAnchor, constant: -16),
-            closeSearchBtn.widthAnchor.constraint(equalToConstant: 28),
-            closeSearchBtn.heightAnchor.constraint(equalToConstant: 28),
- 
-            filterScrollView.topAnchor.constraint(equalTo: searchTextField.bottomAnchor, constant: 8),
-            filterScrollView.leadingAnchor.constraint(equalTo: searchFilterPanel.leadingAnchor),
-            filterScrollView.trailingAnchor.constraint(equalTo: searchFilterPanel.trailingAnchor),
-            filterPillsHeightConstraint,
- 
-            filterStack.topAnchor.constraint(equalTo: filterScrollView.topAnchor),
-            filterStack.bottomAnchor.constraint(equalTo: filterScrollView.bottomAnchor),
-            filterStack.leadingAnchor.constraint(equalTo: filterScrollView.contentLayoutGuide.leadingAnchor),
-            filterStack.trailingAnchor.constraint(equalTo: filterScrollView.contentLayoutGuide.trailingAnchor),
-            filterStack.heightAnchor.constraint(equalTo: filterScrollView.frameLayoutGuide.heightAnchor),
- 
-            sep.bottomAnchor.constraint(equalTo: searchFilterPanel.bottomAnchor),
-            sep.leadingAnchor.constraint(equalTo: searchFilterPanel.leadingAnchor),
-            sep.trailingAnchor.constraint(equalTo: searchFilterPanel.trailingAnchor),
-            sep.heightAnchor.constraint(equalToConstant: 0.5),
-        ])
- 
-        // filterPanel bottom = filterScrollView bottom
-        filterScrollView.bottomAnchor.constraint(equalTo: searchFilterPanel.bottomAnchor, constant: -8).isActive = true
-    }
- 
-    private func styleFilterPill(_ btn: UIButton, title: String, icon: String, active: Bool) {
-        var config = UIButton.Configuration.filled()
-        config.title = title
-        config.image = UIImage(systemName: icon,
-                               withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .medium))
-        config.imagePadding = 5
-        config.imagePlacement = .leading
-        config.baseBackgroundColor = active ? accent : UIColor.secondarySystemBackground
-        config.baseForegroundColor = active ? .white : .secondaryLabel
-        config.cornerStyle = .capsule
-        config.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12)
-        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attrs in
-            var a = attrs; a.font = UIFont.systemFont(ofSize: 13, weight: .medium); return a
-        }
-        btn.configuration = config
-        btn.translatesAutoresizingMaskIntoConstraints = false
-    }
- 
-    private func updatePillStyle(_ btn: UIButton, title: String, icon: String, active: Bool) {
-        var config = btn.configuration
-        config?.title = title
-        config?.image = UIImage(systemName: icon,
-                                withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .medium))
-        config?.baseBackgroundColor = active ? accent : UIColor.secondarySystemBackground
-        config?.baseForegroundColor = active ? .white : .secondaryLabel
-        btn.configuration = config
- 
-        if active {
-            UIView.animate(withDuration: 0.2) {
-                btn.transform = CGAffineTransform(scaleX: 1.04, y: 1.04)
-            } completion: { _ in
-                UIView.animate(withDuration: 0.15) { btn.transform = .identity }
-            }
-        }
-    }
- 
     // MARK: - Build: Carousel
  
     private func buildCarousel() {
-        carouselScrollView.isPagingEnabled = true
+        carouselScrollView.isPagingEnabled                = true
         carouselScrollView.showsHorizontalScrollIndicator = false
-        carouselScrollView.clipsToBounds = true
-        carouselScrollView.delegate = self
+        carouselScrollView.clipsToBounds                  = true
+        carouselScrollView.delegate                       = self
         carouselScrollView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(carouselScrollView)
  
@@ -981,14 +837,14 @@ class DashboardViewController: UIViewController {
         goalCard.translatesAutoresizingMaskIntoConstraints = false
         carouselScrollView.addSubview(goalCard)
  
-        carouselPageControl.numberOfPages = 2
-        carouselPageControl.pageIndicatorTintColor        = .tertiaryLabel
-        carouselPageControl.currentPageIndicatorTintColor = accent
+        carouselPageControl.numberOfPages                    = 2
+        carouselPageControl.pageIndicatorTintColor           = .tertiaryLabel
+        carouselPageControl.currentPageIndicatorTintColor    = accent
         carouselPageControl.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(carouselPageControl)
     }
  
-    // MARK: - Chart nav bar
+    // MARK: - Build: Chart Nav Bar
  
     private func buildChartNavBar() {
         navBarView.backgroundColor = .clear
@@ -996,6 +852,7 @@ class DashboardViewController: UIViewController {
         chartCard.addSubview(navBarView)
  
         let chevConf = UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+ 
         prevButton.setImage(UIImage(systemName: "chevron.left", withConfiguration: chevConf), for: .normal)
         prevButton.tintColor = accent
         prevButton.translatesAutoresizingMaskIntoConstraints = false
@@ -1013,8 +870,8 @@ class DashboardViewController: UIViewController {
  
         todayButton.setTitle("Bugun", for: .normal)
         todayButton.titleLabel?.font = .systemFont(ofSize: 12, weight: .medium)
-        todayButton.tintColor = accent
-        todayButton.isHidden  = true
+        todayButton.tintColor        = accent
+        todayButton.isHidden         = true
         todayButton.translatesAutoresizingMaskIntoConstraints = false
         todayButton.addTarget(self, action: #selector(todayTapped), for: .touchUpInside)
  
@@ -1044,11 +901,11 @@ class DashboardViewController: UIViewController {
     func updateNavBarUI() {
         navTitleLabel.text = viewModel.navigationTitle
  
-        let canPrev = viewModel.canGoToPrevious
+        let canPrev      = viewModel.canGoToPrevious
         prevButton.alpha     = canPrev ? 1.0 : 0.25
         prevButton.isEnabled = canPrev
  
-        let canNext = viewModel.canGoToNext
+        let canNext      = viewModel.canGoToNext
         nextButton.alpha     = canNext ? 1.0 : 0.25
         nextButton.isEnabled = canNext
  
@@ -1078,10 +935,10 @@ class DashboardViewController: UIViewController {
  
     private func animateChartTransition(direction: CGFloat) {
         let offset: CGFloat = 28 * direction
-        UIView.animate(withDuration: 0.13, animations: {
+        UIView.animate(withDuration: 0.13) {
             self.pieChartView.alpha     = 0
             self.pieChartView.transform = CGAffineTransform(translationX: -offset, y: 0)
-        }) { _ in
+        } completion: { _ in
             self.pieChartView.transform = CGAffineTransform(translationX: offset, y: 0)
             UIView.animate(withDuration: 0.18, delay: 0,
                            usingSpringWithDamping: 0.85, initialSpringVelocity: 0) {
@@ -1091,7 +948,7 @@ class DashboardViewController: UIViewController {
         }
     }
  
-    // MARK: - Build: Scroll content
+    // MARK: - Build: Scroll Content
  
     private func buildScrollContent() {
         scrollView.translatesAutoresizingMaskIntoConstraints  = false
@@ -1112,8 +969,8 @@ class DashboardViewController: UIViewController {
  
     private func activateConstraints() {
         let cardH: CGFloat = 320
-        carouselHeightConstraint = carouselScrollView.heightAnchor.constraint(equalToConstant: cardH)
-        filterPanelHeightConstraint = searchFilterPanel.heightAnchor.constraint(equalToConstant: 0)
+        carouselHeightConstraint      = carouselScrollView.heightAnchor.constraint(equalToConstant: cardH)
+        filterPanelHeightConstraint   = searchFilterPanel.heightAnchor.constraint(equalToConstant: 0)
  
         NSLayoutConstraint.activate([
             // Nav
@@ -1122,7 +979,7 @@ class DashboardViewController: UIViewController {
             navContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             navContainer.heightAnchor.constraint(equalToConstant: 52),
  
-            // Search/Filter panel — nav altında, carousel ustında
+            // Search/Filter panel
             searchFilterPanel.topAnchor.constraint(equalTo: navContainer.bottomAnchor),
             searchFilterPanel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             searchFilterPanel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -1138,7 +995,7 @@ class DashboardViewController: UIViewController {
             carouselPageControl.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             carouselPageControl.heightAnchor.constraint(equalToConstant: 20),
  
-            // Scroll view (transactions list)
+            // Scroll view
             scrollView.topAnchor.constraint(equalTo: carouselPageControl.bottomAnchor, constant: 4),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -1150,11 +1007,12 @@ class DashboardViewController: UIViewController {
             contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
             contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
  
+            // Smart banner
             smartBanner.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 4),
             smartBanner.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             smartBanner.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
  
-            // Table view — smartBanner dan 10pt past, bo'shliq minimallashtrildi
+            // Table view
             tableView.topAnchor.constraint(equalTo: smartBanner.bottomAnchor, constant: 4),
             tableView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
@@ -1200,175 +1058,6 @@ class DashboardViewController: UIViewController {
         updateNavBarUI()
     }
  
-    // MARK: - Search expand / collapse
- 
-    @objc func expandSearch() {
-        guard !isSearchExpanded else { return }
-        isSearchExpanded = true
- 
-        searchFilterPanel.isHidden = false
- 
-        // Qayta ochilganda pill ko'rinishlarini tiklash (oldingi filter holati)
-        updateFilterPillStyles()
- 
-        UIView.animate(withDuration: 0.38, delay: 0,
-                       usingSpringWithDamping: 0.82, initialSpringVelocity: 0.2,
-                       options: .curveEaseInOut) {
-            self.balanceLabel.alpha  = 0
-            self.searchIconBtn.alpha = 0
-            self.plusBtn.alpha       = 0
- 
-            self.carouselHeightConstraint.constant = 0
-            self.carouselScrollView.alpha          = 0
-            self.carouselPageControl.alpha         = 0
- 
-            self.filterPanelHeightConstraint.constant = 103
- 
-            self.view.layoutIfNeeded()
-        } completion: { _ in
-            self.carouselScrollView.isHidden  = true
-            self.carouselPageControl.isHidden = true
-            self.searchTextField.becomeFirstResponder()
-        }
-    }
- 
-    @objc func collapseSearch() {
-        guard isSearchExpanded else { return }
-        isSearchExpanded = false
- 
-        // Hamma narsani tozalash — dastlabki holatga qaytarish
-        selectedCategory = nil
-        startDate        = nil
-        endDate          = nil
-        viewModel.setSearchQuery("")
-        viewModel.setCategoryFilter(nil)
-        viewModel.setDateRangeFilter(start: nil, end: nil)
-        updateFilterPillStyles()
- 
-        searchTextField.resignFirstResponder()
-        searchTextField.text = nil
- 
-        carouselScrollView.isHidden  = false
-        carouselPageControl.isHidden = false
- 
-        UIView.animate(withDuration: 0.38, delay: 0,
-                       usingSpringWithDamping: 0.82, initialSpringVelocity: 0.2,
-                       options: .curveEaseInOut) {
-            self.balanceLabel.alpha  = 1
-            self.searchIconBtn.alpha = 1
-            self.plusBtn.alpha       = 1
- 
-            self.carouselHeightConstraint.constant = 320
-            self.carouselScrollView.alpha          = 1
-            self.carouselPageControl.alpha         = 1
- 
-            self.filterPanelHeightConstraint.constant = 0
- 
-            self.view.layoutIfNeeded()
-        } completion: { _ in
-            self.searchFilterPanel.isHidden = true
-            self.viewModel.reloadFromLocal()
-        }
-    }
- 
-    // MARK: - Search text changed
- 
-    @objc private func searchTextChanged() {
-        let text = searchTextField.text ?? ""
-        viewModel.setSearchQuery(text)
-    }
- 
-    // MARK: - Category filter
- 
-    @objc private func showCategoryPicker() {
-        let alert = UIAlertController(title: "Kategoriya tanlang", message: nil, preferredStyle: .actionSheet)
- 
-        // Barchasi
-        alert.addAction(UIAlertAction(title: selectedCategory == nil ? "✓ Barchasi" : "Barchasi", style: .default) { [weak self] _ in
-            self?.selectedCategory = nil
-            self?.viewModel.setCategoryFilter(nil)
-            self?.updateFilterPillStyles()
-        })
- 
-        for cat in allCategories {
-            let title = (selectedCategory == cat) ? "✓ \(cat)" : cat
-            alert.addAction(UIAlertAction(title: title, style: .default) { [weak self] _ in
-                self?.selectedCategory = cat
-                self?.viewModel.setCategoryFilter(cat)
-                self?.updateFilterPillStyles()
-            })
-        }
- 
-        alert.addAction(UIAlertAction(title: "Bekor qilish", style: .cancel))
- 
-        if let popover = alert.popoverPresentationController {
-            popover.sourceView = categoryFilterBtn
-            popover.sourceRect = categoryFilterBtn.bounds
-        }
-        present(alert, animated: true)
-    }
- 
-    // MARK: - Date range filter
- 
-    @objc private func showDatePicker() {
-        let vc = DateRangePickerViewController()
-        vc.initialStartDate = startDate
-        vc.initialEndDate   = endDate
-        vc.onConfirm = { [weak self] start, end in
-            guard let self = self else { return }
-            self.startDate = start
-            self.endDate   = end
-            self.viewModel.setDateRangeFilter(start: start, end: end)
-            self.updateFilterPillStyles()
-        }
-        vc.modalPresentationStyle = .pageSheet
-        if let sheet = vc.sheetPresentationController {
-            sheet.detents = [.medium()]
-            sheet.prefersGrabberVisible = true
-            sheet.preferredCornerRadius = 24
-        }
-        present(vc, animated: true)
-    }
- 
-    // MARK: - Clear filters
- 
-    @objc private func clearAllFilters() {
-        selectedCategory = nil
-        startDate = nil
-        endDate   = nil
-        viewModel.setCategoryFilter(nil)
-        viewModel.setDateRangeFilter(start: nil, end: nil)
-        updateFilterPillStyles()
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-    }
- 
-    // MARK: - Update pill styles
- 
-    private func updateFilterPillStyles() {
-        let catActive = selectedCategory != nil
-        let catTitle  = catActive ? (selectedCategory ?? "Kategoriya") : "Kategoriya"
-        updatePillStyle(categoryFilterBtn, title: catTitle, icon: "tag.fill", active: catActive)
- 
-        let dateActive = startDate != nil || endDate != nil
-        let dateTitle: String
-        if let s = startDate, let e = endDate {
-            let f = DateFormatter()
-            f.dateFormat = "dd.MM"
-            dateTitle = "\(f.string(from: s))–\(f.string(from: e))"
-        } else if startDate != nil || endDate != nil {
-            dateTitle = "Sana ✓"
-        } else {
-            dateTitle = "Sana"
-        }
-        updatePillStyle(dateFilterBtn, title: dateTitle, icon: "calendar", active: dateActive)
- 
-        let anyActive = catActive || dateActive
-        clearFilterBtn.isHidden = !anyActive
-        if anyActive {
-            updatePillStyle(clearFilterBtn, title: "Tozalash", icon: "xmark.circle.fill", active: false)
-        }
-    }
- 
     // MARK: - Actions
  
     @objc private func addTapped() {
@@ -1383,11 +1072,8 @@ class DashboardViewController: UIViewController {
     func updateTableViewHeight() {
         let rows     = groupedTransactions.reduce(0) { $0 + $1.transactions.count }
         let sections = groupedTransactions.count
-        let rowH: CGFloat    = 54
-        let headerH: CGFloat = 28
-        let minH: CGFloat    = 80
-        let calculatedH = CGFloat(rows) * rowH + CGFloat(sections) * headerH
-        tableViewHeightConstraint?.constant = max(calculatedH, minH)
+        let calculatedH = CGFloat(rows) * 54 + CGFloat(sections) * 28
+        tableViewHeightConstraint?.constant = max(calculatedH, 80)
     }
 }
  
@@ -1411,193 +1097,7 @@ extension DashboardViewController: UITextFieldDelegate {
         viewModel.setSearchQuery(textField.text ?? "")
     }
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        textField.resignFirstResponder(); return true
-    }
-}
- 
-// MARK: - DateRangePickerViewController
- 
-final class DateRangePickerViewController: UIViewController {
- 
-    var initialStartDate: Date?
-    var initialEndDate: Date?
-    var onConfirm: ((Date?, Date?) -> Void)?
- 
-    private let accent = UIColor(red: 91/255, green: 173/255, blue: 198/255, alpha: 1)
- 
-    private let startPicker = UIDatePicker()
-    private let endPicker   = UIDatePicker()
-    private let startSwitch = UISwitch()
-    private let endSwitch   = UISwitch()
- 
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = .systemGroupedBackground
-        title = "Sana oralig'i"
-        setupUI()
-    }
- 
-    private func setupUI() {
-        let titleLabel = UILabel()
-        titleLabel.text = "Sana oralig'ini tanlang"
-        titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
- 
-        // ── Start date ────────────────────────────────────────────
-        let startCard = makeCard()
-        let startLabel = makeRowLabel("Dan (boshlang'ich)")
-        startSwitch.isOn = initialStartDate != nil
-        startSwitch.onTintColor = accent
-        startSwitch.translatesAutoresizingMaskIntoConstraints = false
-        startSwitch.addTarget(self, action: #selector(startSwitchChanged), for: .valueChanged)
- 
-        startPicker.datePickerMode = .date
-        startPicker.preferredDatePickerStyle = .compact
-        startPicker.tintColor = accent
-        startPicker.isEnabled = startSwitch.isOn
-        startPicker.alpha     = startSwitch.isOn ? 1 : 0.4
-        startPicker.date      = initialStartDate ?? Date()
-        startPicker.translatesAutoresizingMaskIntoConstraints = false
- 
-        let startRow = makeHRow(label: startLabel, control: startSwitch)
-        startCard.addSubview(startRow)
-        startCard.addSubview(startPicker)
- 
-        NSLayoutConstraint.activate([
-            startRow.topAnchor.constraint(equalTo: startCard.topAnchor, constant: 14),
-            startRow.leadingAnchor.constraint(equalTo: startCard.leadingAnchor, constant: 16),
-            startRow.trailingAnchor.constraint(equalTo: startCard.trailingAnchor, constant: -16),
- 
-            startPicker.topAnchor.constraint(equalTo: startRow.bottomAnchor, constant: 10),
-            startPicker.leadingAnchor.constraint(equalTo: startCard.leadingAnchor, constant: 16),
-            startPicker.bottomAnchor.constraint(equalTo: startCard.bottomAnchor, constant: -14),
-        ])
- 
-        // ── End date ──────────────────────────────────────────────
-        let endCard = makeCard()
-        let endLabel = makeRowLabel("Gacha (tugash)")
-        endSwitch.isOn = initialEndDate != nil
-        endSwitch.onTintColor = accent
-        endSwitch.translatesAutoresizingMaskIntoConstraints = false
-        endSwitch.addTarget(self, action: #selector(endSwitchChanged), for: .valueChanged)
- 
-        endPicker.datePickerMode = .date
-        endPicker.preferredDatePickerStyle = .compact
-        endPicker.tintColor = accent
-        endPicker.isEnabled = endSwitch.isOn
-        endPicker.alpha     = endSwitch.isOn ? 1 : 0.4
-        endPicker.date      = initialEndDate ?? Date()
-        endPicker.translatesAutoresizingMaskIntoConstraints = false
- 
-        let endRow = makeHRow(label: endLabel, control: endSwitch)
-        endCard.addSubview(endRow)
-        endCard.addSubview(endPicker)
- 
-        NSLayoutConstraint.activate([
-            endRow.topAnchor.constraint(equalTo: endCard.topAnchor, constant: 14),
-            endRow.leadingAnchor.constraint(equalTo: endCard.leadingAnchor, constant: 16),
-            endRow.trailingAnchor.constraint(equalTo: endCard.trailingAnchor, constant: -16),
- 
-            endPicker.topAnchor.constraint(equalTo: endRow.bottomAnchor, constant: 10),
-            endPicker.leadingAnchor.constraint(equalTo: endCard.leadingAnchor, constant: 16),
-            endPicker.bottomAnchor.constraint(equalTo: endCard.bottomAnchor, constant: -14),
-        ])
- 
-        // ── Confirm button ────────────────────────────────────────
-        let confirmBtn = UIButton(type: .system)
-        confirmBtn.setTitle("Qo'llash", for: .normal)
-        confirmBtn.setTitleColor(.white, for: .normal)
-        confirmBtn.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
-        confirmBtn.backgroundColor = accent
-        confirmBtn.layer.cornerRadius = 14
-        confirmBtn.translatesAutoresizingMaskIntoConstraints = false
-        confirmBtn.addTarget(self, action: #selector(confirmTapped), for: .touchUpInside)
- 
-        let clearBtn = UIButton(type: .system)
-        clearBtn.setTitle("Filterni tozalash", for: .normal)
-        clearBtn.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
-        clearBtn.setTitleColor(.systemRed, for: .normal)
-        clearBtn.translatesAutoresizingMaskIntoConstraints = false
-        clearBtn.addTarget(self, action: #selector(clearTapped), for: .touchUpInside)
- 
-        [titleLabel, startCard, endCard, confirmBtn, clearBtn].forEach { view.addSubview($0) }
- 
-        NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24),
-            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
- 
-            startCard.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 20),
-            startCard.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            startCard.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
- 
-            endCard.topAnchor.constraint(equalTo: startCard.bottomAnchor, constant: 12),
-            endCard.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            endCard.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
- 
-            confirmBtn.topAnchor.constraint(equalTo: endCard.bottomAnchor, constant: 24),
-            confirmBtn.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            confirmBtn.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            confirmBtn.heightAnchor.constraint(equalToConstant: 54),
- 
-            clearBtn.topAnchor.constraint(equalTo: confirmBtn.bottomAnchor, constant: 10),
-            clearBtn.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-        ])
-    }
- 
-    private func makeCard() -> UIView {
-        let v = UIView()
-        v.backgroundColor    = .secondarySystemGroupedBackground
-        v.layer.cornerRadius = 16
-        v.translatesAutoresizingMaskIntoConstraints = false
-        return v
-    }
- 
-    private func makeRowLabel(_ text: String) -> UILabel {
-        let l = UILabel()
-        l.text = text
-        l.font = .systemFont(ofSize: 15, weight: .medium)
-        l.translatesAutoresizingMaskIntoConstraints = false
-        return l
-    }
- 
-    private func makeHRow(label: UILabel, control: UIView) -> UIView {
-        let row = UIView()
-        row.translatesAutoresizingMaskIntoConstraints = false
-        row.addSubview(label)
-        row.addSubview(control)
-        NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: row.leadingAnchor),
-            label.centerYAnchor.constraint(equalTo: row.centerYAnchor),
-            control.trailingAnchor.constraint(equalTo: row.trailingAnchor),
-            control.centerYAnchor.constraint(equalTo: row.centerYAnchor),
-            row.heightAnchor.constraint(equalToConstant: 32),
-        ])
-        return row
-    }
- 
-    @objc private func startSwitchChanged() {
-        startPicker.isEnabled = startSwitch.isOn
-        UIView.animate(withDuration: 0.2) {
-            self.startPicker.alpha = self.startSwitch.isOn ? 1 : 0.4
-        }
-    }
- 
-    @objc private func endSwitchChanged() {
-        endPicker.isEnabled = endSwitch.isOn
-        UIView.animate(withDuration: 0.2) {
-            self.endPicker.alpha = self.endSwitch.isOn ? 1 : 0.4
-        }
-    }
- 
-    @objc private func confirmTapped() {
-        let start = startSwitch.isOn ? startPicker.date : nil
-        let end   = endSwitch.isOn   ? endPicker.date   : nil
-        onConfirm?(start, end)
-        dismiss(animated: true)
-    }
- 
-    @objc private func clearTapped() {
-        onConfirm?(nil, nil)
-        dismiss(animated: true)
+        textField.resignFirstResponder()
+        return true
     }
 }
