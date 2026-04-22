@@ -698,12 +698,14 @@ class DashboardViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: animated)
-        viewModel.viewWillAppear()
+        viewModel.viewWillAppear()   // tranzaksiyalar sync
+        loadGoalData()               // ← QO'SHING: planning sync
     }
- 
+     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        viewModel.viewWillDisappear()
+        viewModel.viewWillDisappear()   // tranzaksiyalar listener off
+        stopGoalSync()                  // ← QO'SHING: planning listener off
     }
  
     // MARK: - ViewModel State
