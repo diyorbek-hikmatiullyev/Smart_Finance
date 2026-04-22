@@ -13,10 +13,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
         window = UIWindow(windowScene: windowScene)
 
-        // ✅ MANTIQ:
-        // - Hech kim kirmagan     → AuthViewController
-        // - Anonim foydalanuvchi  → AuthViewController (mehmon sessiyasi qayta yuklanmaydi)
-        // - Haqiqiy foydalanuvchi → MainTabBarController
+       
         let root = makeRootViewController()
         window?.rootViewController = root
         window?.makeKeyAndVisible()
