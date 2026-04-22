@@ -8,7 +8,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        FirebaseApp.configure()
+        if let configPath = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+           let options = FirebaseOptions(contentsOfFile: configPath) {
+            FirebaseApp.configure(options: options)
+        } else {
+            print("Firebase config missing in app bundle: GoogleService-Info.plist")
+        }
         return true
     }
 

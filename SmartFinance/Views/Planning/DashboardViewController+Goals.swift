@@ -263,8 +263,8 @@ final class SmartBannerView: UIView {
         addSubview(iconView)
         addSubview(msgLabel)
  
-        heightConstraint = heightAnchor.constraint(equalToConstant: 0)
-        heightConstraint.isActive = true
+//        heightConstraint = heightAnchor.constraint(equalToConstant: 0)
+//        heightConstraint.isActive = true
  
         NSLayoutConstraint.activate([
             iconView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
@@ -312,17 +312,33 @@ final class SmartBannerView: UIView {
         }
     }
  
+//    func show() {
+//        UIView.animate(withDuration: 0.3) {
+//            self.heightConstraint.isActive = false
+//            self.alpha = 1
+//        }
+//    }
+// 
+//    func hide() {
+//        UIView.animate(withDuration: 0.3) {
+//            self.alpha = 0
+//            self.heightConstraint.isActive = true
+//        }
+//    }
+    
+    // SmartBannerView ichida heightConstraint o'rniga:
     func show() {
+        isHidden = false
         UIView.animate(withDuration: 0.3) {
-            self.heightConstraint.isActive = false
             self.alpha = 1
         }
     }
- 
+
     func hide() {
         UIView.animate(withDuration: 0.3) {
             self.alpha = 0
-            self.heightConstraint.isActive = true
+        } completion: { _ in
+            self.isHidden = true
         }
     }
 }

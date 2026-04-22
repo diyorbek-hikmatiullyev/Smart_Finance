@@ -91,24 +91,41 @@ struct BudgetPlan: Codable {
 final class BudgetPlanStorage {
     static let shared = BudgetPlanStorage()
     private init() {}
-    private let key = "sf_budget_plan_v2"
- 
-    func save(_ plan: BudgetPlan) {
+
+    private let keyPrefix = "sf_budget_plan_v3"
+    private let legacyKey = "sf_budget_plan_v2"
+
+    private func key(for userID: String) -> String {
+        "\(keyPrefix)_\(userID)"
+    }
+
+    func save(_ plan: BudgetPlan, for userID: String) {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .secondsSince1970
         if let data = try? encoder.encode(plan) {
-            UserDefaults.standard.set(data, forKey: key)
+            UserDefaults.standard.set(data, forKey: key(for: userID))
         }
     }
  
-    func load() -> BudgetPlan? {
-        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
+    func load(for userID: String) -> BudgetPlan? {
+        guard let data = UserDefaults.standard.data(forKey: key(for: userID)) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .secondsSince1970
         return try? decoder.decode(BudgetPlan.self, from: data)
     }
  
-    func delete() {
-        UserDefaults.standard.removeObject(forKey: key)
+    func delete(for userID: String) {
+        UserDefaults.standard.removeObject(forKey: key(for: userID))
+    }
+
+    func loadLegacy() -> BudgetPlan? {
+        guard let data = UserDefaults.standard.data(forKey: legacyKey) else { return nil }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .secondsSince1970
+        return try? decoder.decode(BudgetPlan.self, from: data)
+    }
+
+    func deleteLegacy() {
+        UserDefaults.standard.removeObject(forKey: legacyKey)
     }
 }

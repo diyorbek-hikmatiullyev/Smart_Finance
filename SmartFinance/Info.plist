@@ -2,10 +2,23 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    
+    <!-- YANGI QO'SHILGAN KALITLAR -->
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <!-- YANGI QO'SHILGAN KALITLAR TUGADI -->
+    
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>CFBundleShortVersionString</key>
     <string>1.0</string>
+    <key>UILaunchStoryboardName</key>
+    <string>LaunchScreen</string>
     <key>GeminiAPIKey</key>
     <string>AIzaSyDdqeVtiCiDkqDrgmupjzxLF2s_3w-ij9Q</string>
     <key>UIApplicationSceneManifest</key>
@@ -25,5 +38,7 @@
             </array>
         </dict>
     </dict>
+    <key>UIRequiresFullScreen</key>
+    <true/>
 </dict>
 </plist>

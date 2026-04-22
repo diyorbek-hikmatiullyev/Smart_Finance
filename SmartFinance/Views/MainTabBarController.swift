@@ -14,6 +14,7 @@ class MainTabBarController: ESTabBarController {
         super.viewDidLoad()
         setupTabBar()
     }
+    
 
     private func setupTabBar() {
         // Tab bar orqa foni va soyasi
