@@ -697,34 +697,92 @@ extension QRScannerViewController: UIImagePickerControllerDelegate, UINavigation
 }
 
 // MARK: - ScanResultDelegate
-
+// QRScannerViewController.swift ichidagi mavjud ScanResultDelegate extension bilan almashtiring
+ 
 extension QRScannerViewController: ScanResultDelegate {
-
+ 
     func didConfirmExpense(_ expense: ScannedExpense) {
-        FirestoreService.shared.saveExpense(expense) { [weak self] result in
-            // FIX 15: Main thread kafolati — FirestoreService callback thread garantiyasi yo'q
+        guard let uid = AuthSessionProvider.shared.currentUserID else {
+            showErrorAlert(message: "Foydalanuvchi tizimga kirmagan")
+            return
+        }
+ 
+        // ✅ Duplicate key: amount + vendorName + chek sanasi (daqiqagacha)
+        let dupKey = duplicateKey(for: expense)
+ 
+        if RecentScanCache.shared.contains(dupKey) {
+            showDuplicateConfirmAlert(expense: expense, uid: uid, dupKey: dupKey)
+            return
+        }
+ 
+        RecentScanCache.shared.add(dupKey)
+        saveExpense(expense, uid: uid)
+    }
+ 
+    // MARK: - Duplicate Key
+ 
+    private func duplicateKey(for expense: ScannedExpense) -> String {
+        let calendar = Calendar.current
+        let comps = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: expense.date)
+        let dateStr = "\(comps.year ?? 0)-\(comps.month ?? 0)-\(comps.day ?? 0)-\(comps.hour ?? 0)-\(comps.minute ?? 0)"
+        let vendor = expense.vendorName.lowercased().trimmingCharacters(in: .whitespaces)
+        let amount = Int(expense.amount)
+        return "\(vendor)_\(amount)_\(dateStr)"
+    }
+ 
+    // MARK: - Duplicate Alert
+ 
+    private func showDuplicateConfirmAlert(expense: ScannedExpense, uid: String, dupKey: String) {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = " "
+        formatter.maximumFractionDigits = 0
+        let amountStr = (formatter.string(from: NSNumber(value: expense.amount)) ?? "\(Int(expense.amount))") + " so'm"
+ 
+        let alert = UIAlertController(
+            title: "⚠️ Takroriy chek",
+            message: "\(expense.vendorName) — \(amountStr)\n\nBu chek allaqachon saqlangan. Qayta saqlaysizmi?",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Qayta saqlash", style: .destructive) { [weak self] _ in
+            RecentScanCache.shared.add(dupKey)
+            self?.saveExpense(expense, uid: uid)
+        })
+        alert.addAction(UIAlertAction(title: "Bekor qilish", style: .cancel) { [weak self] _ in
+            self?.didCancelScan()
+        })
+        present(alert, animated: true)
+    }
+ 
+    // MARK: - Save
+ 
+    private func saveExpense(_ expense: ScannedExpense, uid: String) {
+        let input = NewTransactionInput(
+            title: expense.vendorName,
+            amount: expense.amount,
+            isIncome: false,
+            category: expense.category.rawValue,
+            userID: uid
+        )
+ 
+        TransactionRepository.shared.createTransaction(input) { [weak self] error in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                switch result {
-                case .success:
-                    self.showSuccessBanner()
-                    DispatchQueue.global(qos: .userInitiated).async {
-                        if !self.captureSession.isRunning {
-                            self.captureSession.startRunning()
-                        }
-                        self.isProcessingQR = false
+                if let error = error {
+                    self.showErrorAlert(message: error.localizedDescription)
+                    return
+                }
+                self.showSuccessBanner()
+                DispatchQueue.global(qos: .userInitiated).async {
+                    if !self.captureSession.isRunning {
+                        self.captureSession.startRunning()
                     }
-                case .failure(let error):
-                    if (error as NSError).code == 409 {
-                        self.showDuplicateAlert(expense: expense)
-                    } else {
-                        self.showErrorAlert(message: error.localizedDescription)
-                    }
+                    self.isProcessingQR = false
                 }
             }
         }
     }
-
+ 
     func didCancelScan() {
         isProcessingQR = false
         DispatchQueue.global(qos: .userInitiated).async {
@@ -733,24 +791,24 @@ extension QRScannerViewController: ScanResultDelegate {
             }
         }
     }
-
-    // MARK: - Banners
-
+ 
+    // MARK: - Success Banner
+ 
     private func showSuccessBanner() {
         let banner = UIView()
         banner.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.9)
         banner.layer.cornerRadius = 12
         banner.translatesAutoresizingMaskIntoConstraints = false
-
+ 
         let label = UILabel()
         label.text = "✅ Xarajat saqlandi!"
         label.textColor = .white
         label.font = .systemFont(ofSize: 15, weight: .semibold)
         label.translatesAutoresizingMaskIntoConstraints = false
-
+ 
         banner.addSubview(label)
         view.addSubview(banner)
-
+ 
         NSLayoutConstraint.activate([
             banner.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
             banner.centerXAnchor.constraint(equalTo: view.centerXAnchor),
@@ -759,38 +817,15 @@ extension QRScannerViewController: ScanResultDelegate {
             label.leadingAnchor.constraint(equalTo: banner.leadingAnchor, constant: 16),
             label.trailingAnchor.constraint(equalTo: banner.trailingAnchor, constant: -16),
         ])
-
+ 
         banner.alpha = 0
-        UIView.animate(withDuration: 0.3) {
-            banner.alpha = 1
-        } completion: { _ in
-            UIView.animate(withDuration: 0.3, delay: 2.0) {
-                banner.alpha = 0
-            } completion: { _ in
+        UIView.animate(withDuration: 0.3) { banner.alpha = 1 } completion: { _ in
+            UIView.animate(withDuration: 0.3, delay: 2.0) { banner.alpha = 0 } completion: { _ in
                 banner.removeFromSuperview()
             }
         }
     }
-
-    private func showDuplicateAlert(expense: ScannedExpense) {
-        let alert = UIAlertController(
-            title: "⚠️ Allaqachon saqlangan",
-            message: "Bu chek tizimda mavjud. Qayta saqlaysizmi?",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "Ha, saqlash", style: .default) { [weak self] _ in
-            DispatchQueue.global(qos: .userInitiated).async {
-                self?.captureSession.startRunning()
-            }
-        })
-        alert.addAction(UIAlertAction(title: "Bekor qilish", style: .cancel) { [weak self] _ in
-            DispatchQueue.global(qos: .userInitiated).async {
-                self?.captureSession.startRunning()
-            }
-        })
-        present(alert, animated: true)
-    }
-
+ 
     private func showErrorAlert(message: String) {
         let alert = UIAlertController(title: "Xato", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
