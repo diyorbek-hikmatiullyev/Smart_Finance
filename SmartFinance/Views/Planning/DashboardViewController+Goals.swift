@@ -1,6 +1,6 @@
 // DashboardViewController+Goals.swift
 // SmartFinance
-// viewWillAppear / viewWillDisappear — xuddi DashboardViewModel pattern
+// Byudjet maqsadlari — Firestore ga to'liq sinxronlangan
  
 import UIKit
  
@@ -27,7 +27,7 @@ extension DashboardViewController {
         }
     }
  
-    // MARK: - Load (viewWillAppear da chaqiriladi — xuddi viewModel.viewWillAppear() kabi)
+    // MARK: - Load (viewWillAppear da chaqiriladi)
  
     func loadGoalData() {
         goalViewModel.load()
@@ -54,12 +54,13 @@ extension DashboardViewController {
         }
     }
  
-    // MARK: - Open BudgetPlanVC
+    // MARK: - Open BudgetPlanVC (Yaratish yoki Tahrirlash)
  
     func openBudgetPlanVC(editing: Bool) {
         let vc = BudgetPlanViewController()
         vc.existingPlan = editing ? goalViewModel.plan : nil
  
+        // Joriy balansni uzatish
         let filtered = viewModel.transactionsForPeriodCharts
         let income  = filtered.filter { $0.type == "Income"  }.reduce(0) { $0 + $1.amount }
         let expense = filtered.filter { $0.type == "Expense" }.reduce(0) { $0 + $1.amount }
@@ -67,13 +68,18 @@ extension DashboardViewController {
  
         vc.onSave = { [weak self] plan in
             guard let self = self else { return }
+ 
             if plan.totalAmount == 0 {
+                // O'chirish — Firestore dan ham o'chiriladi
                 self.goalViewModel.deletePlan()
             } else {
+                // Saqlash/Tahrirlash — Firestore ga ham yoziladi
                 self.goalViewModel.savePlan(plan)
             }
+ 
             self.refreshGoalUI()
         }
+ 
         navigationController?.pushViewController(vc, animated: true)
     }
 }
