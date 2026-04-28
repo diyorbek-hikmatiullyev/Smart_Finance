@@ -52,7 +52,7 @@ final class QRScannerViewController: UIViewController {
 
     private let bottomPanel: UIView = {
         let v = UIView()
-        v.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+        v.backgroundColor = .clear
         v.translatesAutoresizingMaskIntoConstraints = false
         return v
     }()
@@ -264,11 +264,11 @@ final class QRScannerViewController: UIViewController {
 
             bottomPanel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             bottomPanel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            bottomPanel.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            bottomPanel.heightAnchor.constraint(equalToConstant: 140),
+            bottomPanel.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -80),
+            bottomPanel.heightAnchor.constraint(equalToConstant: 72),
 
             captureButton.centerXAnchor.constraint(equalTo: bottomPanel.centerXAnchor),
-            captureButton.topAnchor.constraint(equalTo: bottomPanel.topAnchor, constant: 16),
+            captureButton.bottomAnchor.constraint(equalTo: bottomPanel.bottomAnchor),
             captureButton.widthAnchor.constraint(equalToConstant: 72),
             captureButton.heightAnchor.constraint(equalToConstant: 72),
 
