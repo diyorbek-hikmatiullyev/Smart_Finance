@@ -1,10 +1,4 @@
-// BudgetPlanRepository.swift
-// SmartFinance
-// TransactionRepository pattern — Firestore listener + local cache
- 
-// BudgetPlanRepository.swift
-// SmartFinance
-// Firestore ga to'liq saqlash, tahrirlash va o'chirish qo'llab-quvvatlangan
+
  
 import Foundation
 import FirebaseFirestore

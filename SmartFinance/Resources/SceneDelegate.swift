@@ -38,14 +38,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func makeRootViewController() -> UIViewController {
         let user = Auth.auth().currentUser
 
-        // Haqiqiy (email yoki Google) foydalanuvchi bo'lsa — bevosita MainApp
-//        if let user = user, !user.isAnonymous {
-//            return UINavigationController(rootViewController: MainTabBarController())
-//        }
-//
-//        // Qolgan barcha holat (hech kim yo'q, yoki anonim) — Auth
-//        return UINavigationController(rootViewController: AuthViewController())
-        
         if let user = user, !user.isAnonymous {
             return MainTabBarController()
         }

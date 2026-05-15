@@ -1,7 +1,3 @@
-//
-//  TransactionRepository.swift
-//  SmartFinance
-//
 
 import CoreData
 import FirebaseFirestore
